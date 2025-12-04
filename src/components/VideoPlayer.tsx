@@ -11,7 +11,6 @@ interface VideoPlayerProps {
   className?: string
   showBackButton?: boolean
   backButtonClassName?: string
-  // 1. AÑADIDO: Propiedad opcional para manejar el click en la flecha
   onBack?: () => void 
 }
 
@@ -22,17 +21,16 @@ export function VideoPlayer({
   className,
   showBackButton = true,
   backButtonClassName,
-  // 2. AÑADIDO: Recibimos la función
   onBack, 
 }: VideoPlayerProps) {
   const navigate = useNavigate()
 
-  // 3. LÓGICA: Si nos pasan 'onBack', lo usamos. Si no, vamos al inicio.
   const handleBackClick = () => {
     if (onBack) {
       onBack()
     } else {
-      navigate("/")
+      // CAMBIO: Agregamos { replace: true } para que no deje rastro en el historial
+      navigate("/", { replace: true })
     }
   }
 
@@ -40,7 +38,7 @@ export function VideoPlayer({
     <div className={cn("relative w-full h-full bg-black", className)}>
       {showBackButton && (
         <button
-          onClick={handleBackClick} // <--- 4. Conectamos el evento
+          onClick={handleBackClick}
           className={cn(
             "absolute top-4 left-4 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors",
             backButtonClassName,
@@ -51,7 +49,15 @@ export function VideoPlayer({
         </button>
       )}
       {videoUrl ? (
-        <iframe src={videoUrl} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
+        // Usar key={videoUrl} fuerza a recargar el iframe si cambias de episodio,
+        // esto a veces ayuda a que el iframe no guarde su propio historial interno.
+        <iframe 
+            key={videoUrl} 
+            src={videoUrl} 
+            className="w-full h-full" 
+            allowFullScreen 
+            allow="autoplay; encrypted-media" 
+        />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
           <PlayCircle className="w-12 h-12 opacity-50" />

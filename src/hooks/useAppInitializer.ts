@@ -8,13 +8,7 @@ import {
   getSectionContent,
 } from "@/lib/sectionQueries"
 
-interface InitState {
-  isInitialized: boolean
-  isLoading: boolean
-  progress: number
-  currentTask: string
-}
-
+// --- UTILIDADES ---
 const getSessionKey = () => {
   if (typeof window !== "undefined") {
     let sessionKey = sessionStorage.getItem("app-session-key")
@@ -27,48 +21,95 @@ const getSessionKey = () => {
   return "default"
 }
 
-// ============================================
-// CONFIGURACIÓN DE DURACIÓN DE PANTALLA DE CARGA
-// ============================================
-// Cambia este valor para ajustar cuánto tiempo se muestra
-// la pantalla de carga (en milisegundos)
-// 1000 = 1 segundo, 2000 = 2 segundos, 3000 = 3 segundos
-const MINIMUM_LOADING_DURATION_MS = 2500
-// ============================================
+const seededShuffle = <T,>(array: T[], seed: string): T[] => {
+  const result = [...array]
+  let seedNum = 0
+  for (let i = 0; i < seed.length; i++) {
+    seedNum += seed.charCodeAt(i)
+  }
+  for (let i = result.length - 1; i > 0; i--) {
+    seedNum = (seedNum * 9301 + 49297) % 233280
+    const j = Math.floor((seedNum / 233280) * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
+const fetchMediaLogo = async (type: "movie" | "tv", id: number) => {
+  const apiKey = import.meta.env.VITE_TMDB_API_KEY
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/${type}/${id}/images?api_key=${apiKey}&include_image_language=es,en,null`
+    )
+    if (!response.ok) return null
+    const data = await response.json()
+    const logos = data.logos || []
+    
+    const spanishLogo = logos.find((logo: any) => logo.iso_639_1 === "es")
+    if (spanishLogo) return spanishLogo.file_path
+    const englishLogo = logos.find((logo: any) => logo.iso_639_1 === "en")
+    if (englishLogo) return englishLogo.file_path
+    
+    return null
+  } catch (e) {
+    return null
+  }
+}
+
+// --- CONFIGURACIÓN ---
+interface InitState {
+  isInitialized: boolean
+  isLoading: boolean
+  progress: number
+  currentTask: string
+}
+
+const LOADING_DURATION_MS = 5000
+const UPDATE_INTERVAL_MS = 50
 
 export const useAppInitializer = (): InitState => {
   const queryClient = useQueryClient()
+  
   const [state, setState] = useState<InitState>({
     isInitialized: false,
     isLoading: true,
     progress: 0,
     currentTask: "Iniciando...",
   })
-  
+
   const initRef = useRef(false)
+  const isDataReadyRef = useRef(false)
 
   useEffect(() => {
     if (initRef.current) return
-    
-    const cachedInit = sessionStorage.getItem("app-initialized")
-    if (cachedInit === getSessionKey()) {
-      setState({
-        isInitialized: true,
-        isLoading: false,
-        progress: 100,
-        currentTask: "Listo",
-      })
-      return
-    }
-
     initRef.current = true
 
-    const initializeApp = async () => {
-      const startTime = Date.now()
+    // --- ANIMACIÓN ---
+    const startTime = Date.now()
+    const progressInterval = setInterval(() => {
+      const elapsedTime = Date.now() - startTime
+      let calculatedProgress = Math.min((elapsedTime / LOADING_DURATION_MS) * 100, 100)
       
+      setState(prev => {
+        if (prev.progress >= 100) {
+          clearInterval(progressInterval)
+          return { ...prev, progress: 100, isInitialized: true, isLoading: false, currentTask: "Listo" }
+        }
+        if (calculatedProgress >= 99 && !isDataReadyRef.current) {
+          return { ...prev, progress: 99 }
+        }
+        if (isDataReadyRef.current && elapsedTime >= LOADING_DURATION_MS) {
+           return { ...prev, progress: 100 }
+        }
+        return { ...prev, progress: calculatedProgress }
+      })
+    }, UPDATE_INTERVAL_MS)
+
+
+    // --- CARGA DE DATOS ---
+    const loadData = async () => {
       try {
-        setState(prev => ({ ...prev, currentTask: "Cargando películas...", progress: 10 }))
-        await new Promise(resolve => setTimeout(resolve, 200))
+        setState(prev => ({ ...prev, currentTask: "Conectando con servidor..." }))
         
         const movies = await queryClient.fetchQuery({
           queryKey: ["all-movies"],
@@ -77,9 +118,6 @@ export const useAppInitializer = (): InitState => {
           gcTime: Infinity,
         })
 
-        setState(prev => ({ ...prev, currentTask: "Cargando series...", progress: 25 }))
-        await new Promise(resolve => setTimeout(resolve, 200))
-        
         const tvShows = await queryClient.fetchQuery({
           queryKey: ["all-series"],
           queryFn: getAllTVShows,
@@ -87,9 +125,6 @@ export const useAppInitializer = (): InitState => {
           gcTime: Infinity,
         })
 
-        setState(prev => ({ ...prev, currentTask: "Cargando secciones...", progress: 40 }))
-        await new Promise(resolve => setTimeout(resolve, 200))
-        
         const tabSections = await queryClient.fetchQuery({
           queryKey: ["tab-sections"],
           queryFn: getTabSections,
@@ -97,103 +132,80 @@ export const useAppInitializer = (): InitState => {
           gcTime: Infinity,
         })
 
-        setState(prev => ({ ...prev, currentTask: "Cargando contenido...", progress: 55 }))
-        await new Promise(resolve => setTimeout(resolve, 200))
-
         await queryClient.fetchQuery({
           queryKey: ["internal-sections", "inicio"],
           queryFn: () => getInternalSections("inicio"),
           staleTime: Infinity,
           gcTime: Infinity,
         })
+        
+        // --- PRECARGA DE LOGOS DEL HERO ---
+        setState(prev => ({ ...prev, currentTask: "Precargando imágenes..." }))
+        
+        const sessionKey = getSessionKey()
+        const allMedia = [...(movies || []), ...(tvShows || [])]
+        
+        // 1. Grupos Estándar
+        const heroGroups = [
+          { id: "inicio", items: seededShuffle(allMedia, `inicio-${sessionKey}`).slice(0, 5) },
+          { id: "peliculas", items: seededShuffle(movies || [], `peliculas-${sessionKey}`).slice(0, 5) },
+          { id: "series", items: seededShuffle(tvShows || [], `series-${sessionKey}`).slice(0, 5) }
+        ]
 
-        setState(prev => ({ ...prev, progress: 65 }))
-
-        await queryClient.fetchQuery({
-          queryKey: ["internal-sections", "peliculas"],
-          queryFn: () => getInternalSections("peliculas"),
-          staleTime: Infinity,
-          gcTime: Infinity,
-        })
-
-        setState(prev => ({ ...prev, progress: 75 }))
-
-        await queryClient.fetchQuery({
-          queryKey: ["internal-sections", "series"],
-          queryFn: () => getInternalSections("series"),
-          staleTime: Infinity,
-          gcTime: Infinity,
-        })
-
-        setState(prev => ({ ...prev, currentTask: "Preparando pestañas...", progress: 85 }))
-        await new Promise(resolve => setTimeout(resolve, 150))
-
+        // 2. Grupos Personalizados (NUEVO)
         if (tabSections && tabSections.length > 0) {
           for (const section of tabSections) {
-            await queryClient.fetchQuery({
-              queryKey: ["custom-section-hero", section.id],
-              queryFn: () => getSectionContent(section),
-              staleTime: Infinity,
-              gcTime: Infinity,
-            })
-
-            await queryClient.fetchQuery({
+            // Obtenemos el contenido de esta sección específica
+            const sectionContent = await queryClient.fetchQuery({
               queryKey: ["section-content", section.id],
               queryFn: () => getSectionContent(section),
               staleTime: Infinity,
               gcTime: Infinity,
-            })
+            });
 
-            await queryClient.fetchQuery({
-              queryKey: ["internal-sections", section.id],
-              queryFn: () => getInternalSections(section.id),
-              staleTime: Infinity,
-              gcTime: Infinity,
-            })
+            if (sectionContent && sectionContent.length > 0) {
+              // Añadimos al grupo de precarga usando la misma semilla que usará el Home
+              heroGroups.push({
+                id: section.id,
+                items: seededShuffle(sectionContent, `${section.id}-${sessionKey}`).slice(0, 5)
+              });
+            }
           }
         }
 
-        setState(prev => ({ ...prev, currentTask: "Finalizando...", progress: 95 }))
-
-        // Calcular cuánto tiempo falta para cumplir la duración mínima
-        const elapsedTime = Date.now() - startTime
-        const remainingTime = Math.max(0, MINIMUM_LOADING_DURATION_MS - elapsedTime)
-        
-        // Esperar el tiempo restante si es necesario
-        if (remainingTime > 0) {
-          await new Promise(resolve => setTimeout(resolve, remainingTime))
+        // 3. Descarga Paralela de Logos
+        const logoPromises = []
+        for (const group of heroGroups) {
+          for (const item of group.items) {
+            const isMovie = "title" in item
+            const type = isMovie ? "movie" : "tv"
+            
+            logoPromises.push(
+              queryClient.prefetchQuery({
+                queryKey: ["media-logo", type, item.id],
+                queryFn: () => fetchMediaLogo(type, item.id),
+                staleTime: Infinity,
+              })
+            )
+          }
         }
+        
+        await Promise.all(logoPromises)
 
-        sessionStorage.setItem("app-initialized", getSessionKey())
-
-        setState({
-          isInitialized: true,
-          isLoading: false,
-          progress: 100,
-          currentTask: "Listo",
-        })
+        // --- FINALIZADO ---
+        isDataReadyRef.current = true;
+        setState(prev => ({ ...prev, currentTask: "Finalizando..." }))
 
       } catch (error) {
-        console.error("Error initializing app:", error)
-        
-        // Incluso en error, esperar el tiempo mínimo
-        const elapsedTime = Date.now() - startTime
-        const remainingTime = Math.max(0, MINIMUM_LOADING_DURATION_MS - elapsedTime)
-        if (remainingTime > 0) {
-          await new Promise(resolve => setTimeout(resolve, remainingTime))
-        }
-        
-        sessionStorage.setItem("app-initialized", getSessionKey())
-        setState({
-          isInitialized: true,
-          isLoading: false,
-          progress: 100,
-          currentTask: "Listo",
-        })
+        console.error("Error cargando datos:", error)
+        isDataReadyRef.current = true;
+        setState(prev => ({ ...prev, currentTask: "Finalizando..." }))
       }
     }
 
-    initializeApp()
+    loadData()
+
+    return () => clearInterval(progressInterval)
   }, [queryClient])
 
   return state

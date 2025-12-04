@@ -152,10 +152,10 @@ useEffect(() => {
       
       {/* 
         =====================================================================================
-        SECCIÓN REPRODUCTOR UNIFICADA
+        SECCIÓN REPRODUCTOR UNIFICADA - STICKY
         ===================================================================================== 
       */}
-      <div className="w-full md:container md:mx-auto md:px-4 md:py-8 md:max-w-5xl md:mb-2">
+      <div className="sticky top-0 z-50 w-full md:static md:container md:mx-auto md:px-4 md:py-8 md:max-w-5xl md:mb-2">
         <div className="aspect-video bg-black md:rounded-xl overflow-hidden shadow-2xl relative border-none md:border md:border-white/10">
           {videoPlayer}
         </div>

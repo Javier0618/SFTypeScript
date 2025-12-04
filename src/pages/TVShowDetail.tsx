@@ -50,7 +50,7 @@ const TVShowDetail = () => {
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
 
-  // 2. MODIFICADO: useEffect para Barra de Estado + Botón Atrás Físico
+// 2. MODIFICADO: useEffect para Barra de Estado + Botón Atrás Físico y de Navegador
   useEffect(() => {
     // A. Configuración inicial de la UI
     const initStatusBar = async () => {
@@ -85,9 +85,7 @@ const TVShowDetail = () => {
       }
     };
 
-    // C. Manejo del Botón Atrás Físico (Hardware)
-    // Esto asegura que si estás en fullscreen, solo salga del video.
-    // Y si no estás en fullscreen, te regrese a la página anterior (Inicio).
+    // C. Manejo del Botón Atrás Físico (Hardware - Celular)
     let backButtonListener: any;
     const setupBackButton = async () => {
       backButtonListener = await CapacitorApp.addListener('backButton', async () => {
@@ -99,12 +97,22 @@ const TVShowDetail = () => {
           await ScreenOrientation.lock({ orientation: 'portrait' });
           await StatusBar.show();
         } else {
-          // Si NO está en pantalla completa, navegar atrás en el historial
-          navigate(-1);
+          // SOLUCIÓN AQUÍ: En lugar de navigate(-1), forzamos ir al INICIO
+          // 'replace: true' evita que se cree más historial, limpiando el flujo.
+          navigate('/', { replace: true });
         }
       });
     };
     setupBackButton();
+
+    // D. Manejo del Botón Atrás del Navegador (Web)
+    // Esto intercepta cuando el usuario da click a la flecha atrás del navegador
+    const handleBrowserBack = (event: PopStateEvent) => {
+      // Opcional: Evitar el comportamiento por defecto si se requiere
+      // event.preventDefault(); 
+      navigate('/', { replace: true });
+    };
+    window.addEventListener('popstate', handleBrowserBack);
 
     // Listeners del DOM
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -116,6 +124,7 @@ const TVShowDetail = () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      window.removeEventListener('popstate', handleBrowserBack); // Limpiamos el listener del navegador
       
       if (backButtonListener) {
         backButtonListener.remove();
@@ -123,7 +132,7 @@ const TVShowDetail = () => {
       
       initStatusBar(); 
     };
-  }, [navigate]); // Añadimos navigate a las dependencias
+  }, [navigate]);
 
   useRealtimeEpisodes(id ? Number(id) : undefined)
 
@@ -303,8 +312,8 @@ const TVShowDetail = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* SECCIÓN REPRODUCTOR UNIFICADA (RESPONSIVE) */}
-      <div className="w-full md:container md:mx-auto md:px-4 md:py-8 md:max-w-[1600px]">
+      {/* SECCIÓN REPRODUCTOR UNIFICADA (RESPONSIVE) - STICKY */}
+      <div className="sticky top-0 z-50 w-full md:static md:container md:mx-auto md:px-4 md:py-8 md:max-w-[1600px]">
         <div className="flex flex-col md:grid md:grid-cols-12 md:gap-6 md:h-[500px] lg:h-[650px] md:mb-2">
           {/* LEFT: Video Player */}
           <div className="w-full md:col-span-8 lg:col-span-9 bg-black md:rounded-xl overflow-hidden shadow-2xl relative flex items-center justify-center aspect-video md:aspect-auto">
