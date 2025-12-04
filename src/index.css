@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Cambiando color primario de #e21d4b (346 77% 50%) a #ff9900 (20, 100%, 50%) */
+    --primary: 20, 100%, 50%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 45 93% 58%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    /* Cambiando ring al nuevo color primario */
+    --ring: 20, 100%, 50%;
+
+    --radius: 0.75rem;
+
+    /* Actualizando gradientes y sombras al nuevo color */
+    --gradient-hero: linear-gradient(135deg, hsl(20, 100%, 50% / 0.15), hsl(0 0% 7%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 12%), hsl(0 0% 8%));
+    --shadow-glow: 0 0 40px hsl(20, 100%, 50% / 0.3);
+    --shadow-card: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Cambiando color primario en modo oscuro */
+    --primary: 20, 100%, 50%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 45 93% 58%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    /* Cambiando ring en modo oscuro */
+    --ring: 20, 100%, 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.embla__container {
+  display: flex;
+  height: 100%;
+}
+
+.embla__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.embla__slide.is-active {
+  opacity: 1;
+}
+
+/* Agregar optimizaciones para renderizado nativo móvil */
+@layer utilities {
+  /* Clase para activar aceleración por hardware */
+  .hardware-accelerated {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Optimizar composición de capas */
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Prevenir scroll bounce en iOS */
+  .no-overscroll {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mejorar touch response */
+  .touch-optimized {
+    touch-action: pan-y pinch-zoom;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+}
+
+/* Optimizaciones globales para móvil */
+@media (max-width: 768px) {
+  html,
+  body {
+    overscroll-behavior-x: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevenir selección de texto accidental durante swipe */
+  .swipe-container {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Animaciones más suaves en móvil */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Curvas de animación nativas tipo iOS */
+@layer utilities {
+  .ease-native {
+    transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .ease-native-out {
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ease-native-in-out {
+    transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+}

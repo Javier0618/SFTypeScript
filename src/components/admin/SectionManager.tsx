@@ -1,0 +1,372 @@
+"use client"
+
+import { useState } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import { getAllSections, createSection, updateSection, deleteSection, type Section } from "@/lib/sectionQueries"
+import { Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react"
+import { CustomSectionEditor } from "./CustomSectionEditor"
+
+const CATEGORIES = [
+  { value: "action", label: "Acción" },
+  { value: "adventure", label: "Aventura" },
+  { value: "animation", label: "Animación" },
+  { value: "comedy", label: "Comedia" },
+  { value: "crime", label: "Crimen" },
+  { value: "documentary", label: "Documental" },
+  { value: "drama", label: "Drama" },
+  { value: "family", label: "Familia" },
+  { value: "fantasy", label: "Fantasía" },
+  { value: "history", label: "Historia" },
+  { value: "horror", label: "Terror" },
+  { value: "music", label: "Música" },
+  { value: "mystery", label: "Misterio" },
+  { value: "romance", label: "Romance" },
+  { value: "science fiction", label: "Ciencia Ficción" },
+  { value: "thriller", label: "Suspenso" },
+  { value: "war", label: "Guerra" },
+  { value: "western", label: "Western" },
+  { value: "tv movie", label: "Película de TV" },
+]
+
+const getContentTypeForTab = (internalTab: string): "all" | "movie" | "tv" => {
+  if (internalTab === "peliculas") return "movie"
+  if (internalTab === "series") return "tv"
+  return "all" // For "inicio" or custom tabs
+}
+
+export const SectionManager = () => {
+  const queryClient = useQueryClient()
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [editingSection, setEditingSection] = useState<Section | null>(null)
+  const [newSection, setNewSection] = useState({
+    name: "",
+    type: "category" as "category" | "custom",
+    category: "",
+    position: 0,
+    visible: true,
+    placement: "internal" as "tab" | "internal",
+    internal_tab: "inicio" as string,
+  })
+
+  const { data: sections, isLoading } = useQuery({
+    queryKey: ["sections"],
+    queryFn: getAllSections,
+  })
+
+  const availableTabSections = sections?.filter((s) => s.placement === "tab") || []
+
+  const createMutation = useMutation({
+    mutationFn: createSection,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sections"] })
+      queryClient.invalidateQueries({ queryKey: ["tab-sections"] })
+      queryClient.invalidateQueries({ queryKey: ["internal-sections"] })
+      toast.success("Sección creada exitosamente")
+      setIsCreateOpen(false)
+      setNewSection({
+        name: "",
+        type: "category",
+        category: "",
+        position: 0,
+        visible: true,
+        placement: "internal",
+        internal_tab: "inicio",
+      })
+    },
+    onError: () => {
+      toast.error("Error al crear la sección")
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Section> }) => updateSection(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sections"] })
+      queryClient.invalidateQueries({ queryKey: ["tab-sections"] })
+      queryClient.invalidateQueries({ queryKey: ["internal-sections"] })
+      toast.success("Sección actualizada")
+    },
+    onError: () => {
+      toast.error("Error al actualizar la sección")
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteSection,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sections"] })
+      queryClient.invalidateQueries({ queryKey: ["tab-sections"] })
+      queryClient.invalidateQueries({ queryKey: ["internal-sections"] })
+      toast.success("Sección eliminada")
+    },
+    onError: () => {
+      toast.error("Error al eliminar la sección")
+    },
+  })
+
+  const handleCreate = () => {
+    if (!newSection.name) {
+      toast.error("El nombre es requerido")
+      return
+    }
+    if (newSection.type === "category" && !newSection.category) {
+      toast.error("La categoría es requerida")
+      return
+    }
+
+    const maxPosition = sections?.reduce((max, s) => Math.max(max, s.position), -1) ?? -1
+
+    const contentType = newSection.placement === "internal" ? getContentTypeForTab(newSection.internal_tab) : "all"
+
+    createMutation.mutate({
+      ...newSection,
+      position: maxPosition + 1,
+      internal_tab: newSection.placement === "internal" ? newSection.internal_tab : null,
+      content_type: contentType,
+    })
+  }
+
+  const toggleVisibility = (section: Section) => {
+    updateMutation.mutate({
+      id: section.id,
+      updates: { visible: !section.visible },
+    })
+  }
+
+  const moveSection = (section: Section, direction: "up" | "down") => {
+    if (!sections) return
+
+    const currentIndex = sections.findIndex((s) => s.id === section.id)
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+
+    if (targetIndex < 0 || targetIndex >= sections.length) return
+
+    const targetSection = sections[targetIndex]
+
+    updateMutation.mutate({
+      id: section.id,
+      updates: { position: targetSection.position },
+    })
+
+    updateMutation.mutate({
+      id: targetSection.id,
+      updates: { position: section.position },
+    })
+  }
+
+  if (isLoading) {
+    return <div className="text-center py-8">Cargando secciones...</div>
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Gestión de Secciones</h2>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Sección
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Crear Nueva Sección</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Nombre de la Sección</Label>
+                <Input
+                  id="name"
+                  value={newSection.name}
+                  onChange={(e) => setNewSection({ ...newSection, name: e.target.value })}
+                  placeholder="Ej: Animes, Doramas, Terror"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="type">Tipo de Sección</Label>
+                <Select
+                  value={newSection.type}
+                  onValueChange={(value: "category" | "custom") => setNewSection({ ...newSection, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="category">Por Categoría</SelectItem>
+                    <SelectItem value="custom">Personalizada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {newSection.type === "category" && (
+                <div>
+                  <Label htmlFor="category">Categoría</Label>
+                  <Select
+                    value={newSection.category}
+                    onValueChange={(value) => setNewSection({ ...newSection, category: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="placement">Ubicación en Móvil</Label>
+                <Select
+                  value={newSection.placement}
+                  onValueChange={(value: "tab" | "internal") => setNewSection({ ...newSection, placement: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tab">Pestaña Principal</SelectItem>
+                    <SelectItem value="internal">Sección Interna</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {newSection.placement === "tab"
+                    ? "Aparece como pestaña en el menú de navegación móvil"
+                    : "Se muestra como carrusel dentro de una pestaña existente"}
+                </p>
+              </div>
+
+              {newSection.placement === "internal" && (
+                <div>
+                  <Label htmlFor="internal_tab">Pestaña de Destino</Label>
+                  <Select
+                    value={newSection.internal_tab}
+                    onValueChange={(value) => setNewSection({ ...newSection, internal_tab: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inicio">Inicio</SelectItem>
+                      <SelectItem value="peliculas">Películas</SelectItem>
+                      <SelectItem value="series">Series</SelectItem>
+                      {availableTabSections.map((tabSection) => (
+                        <SelectItem key={tabSection.id} value={tabSection.id}>
+                          {tabSection.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {newSection.internal_tab === "peliculas"
+                      ? "Esta sección solo mostrará películas"
+                      : newSection.internal_tab === "series"
+                        ? "Esta sección solo mostrará series"
+                        : "Esta sección mostrará películas y series"}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="visible">Visible</Label>
+                <Switch
+                  id="visible"
+                  checked={newSection.visible}
+                  onCheckedChange={(checked) => setNewSection({ ...newSection, visible: checked })}
+                />
+              </div>
+
+              <Button onClick={handleCreate} className="w-full" disabled={createMutation.isPending}>
+                Crear Sección
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="space-y-4">
+        {sections?.map((section, index) => (
+          <div key={section.id} className="border border-border rounded-lg p-4 bg-card">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="flex flex-col gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => moveSection(section, "up")} disabled={index === 0}>
+                    <GripVertical className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => moveSection(section, "down")}
+                    disabled={index === sections.length - 1}
+                  >
+                    <GripVertical className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="flex-1">
+                  <h3 className="font-semibold">{section.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {section.type === "category"
+                      ? `Categoría: ${CATEGORIES.find((c) => c.value === section.category)?.label || section.category}`
+                      : "Sección personalizada"}
+                    {section.type === "category" && section.content_type && section.content_type !== "all" && (
+                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted">
+                        {section.content_type === "movie" ? "Solo películas" : "Solo series"}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {section.placement === "tab"
+                      ? "📱 Pestaña principal en móvil"
+                      : section.placement === "internal"
+                        ? `📱 Dentro de: ${
+                            section.internal_tab === "inicio"
+                              ? "Inicio"
+                              : section.internal_tab === "peliculas"
+                                ? "Películas"
+                                : section.internal_tab === "series"
+                                  ? "Series"
+                                  : sections?.find((s) => s.id === section.internal_tab)?.name || section.internal_tab
+                          }`
+                        : "💻 Solo escritorio"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => toggleVisibility(section)}>
+                    {section.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </Button>
+
+                  {section.type === "custom" && <CustomSectionEditor section={section} />}
+
+                  <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(section.id)}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {!sections?.length && (
+          <div className="text-center py-12 text-muted-foreground">
+            No hay secciones creadas. Crea una nueva sección para comenzar.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
