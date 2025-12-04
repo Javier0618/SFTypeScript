@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom"
 
 import { useContentProtection } from "./hooks/useContentProtection"
+import { ImageCacheProvider } from "./contexts/ImageCacheContext"
 import Index from "./pages/Index"
 import Movies from "./pages/Movies"
 import TVShows from "./pages/TVShows"
@@ -137,13 +138,15 @@ const AppContent = () => {
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </TooltipProvider>
+      <ImageCacheProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </ImageCacheProvider>
     </QueryClientProvider>
   )
 }

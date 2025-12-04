@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client"
 import type { Media } from "./tmdb"
 
+export type { Media }
+
 export interface Section {
   id: string
   name: string

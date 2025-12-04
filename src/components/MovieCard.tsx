@@ -4,11 +4,12 @@ import { type Movie, type TVShow, getImageUrl } from "@/lib/tmdb"
 import { Card } from "@/components/ui/card"
 import { Link } from "react-router-dom"
 import RatingCircle from "@/components/ui/RatingCircle"
+import { CachedImage } from "@/components/CachedImage"
 
 interface MovieCardProps {
   item: Movie | TVShow
   type: "movie" | "tv"
-  titleLines?: 1 | 2 | "full" // Added "full" option to show complete title
+  titleLines?: 1 | 2 | "full"
   onClick?: () => void
 }
 
@@ -27,11 +28,16 @@ export const MovieCard = ({ item, type, titleLines = 1, onClick }: MovieCardProp
       <Card className="relative overflow-hidden rounded-lg border-0 bg-card shadow-card transition-all duration-300 cursor-pointer">
         <div className="aspect-[2/3] relative">
           {item.poster_path ? (
-            <img
-              src={getImageUrl(item.poster_path) || "/placeholder.svg"}
+            <CachedImage
+              src={getImageUrl(item.poster_path)}
               alt={title}
               className="w-full h-full object-cover"
               loading="lazy"
+              fallback={
+                <div className="w-full h-full bg-secondary flex items-center justify-center">
+                  <span className="text-muted-foreground">Sin imagen</span>
+                </div>
+              }
             />
           ) : (
             <div className="w-full h-full bg-secondary flex items-center justify-center">

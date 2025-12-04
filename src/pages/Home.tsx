@@ -13,12 +13,14 @@ import {
   getTabSections,
   getInternalSections,
   type Section,
-  type Media, // Asegúrate de exportar esto o importarlo
+  type Media,
 } from "@/lib/sectionQueries"
 import { Navbar } from "@/components/Navbar"
 import { MobileNavbar } from "@/components/MobileNavbar"
 import { MobileTabNavigation, type Tab } from "@/components/MobileTabNavigation"
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation"
+import { useImageCacheContext } from "@/contexts/ImageCacheContext"
+import { getImageUrl } from "@/lib/tmdb"
 
 // --- Helper Functions ---
 const getSessionKey = () => {
@@ -80,11 +82,12 @@ const Home = () => {
     gcTime: Infinity,
   })
 
+  const { prefetchImages, isMobile } = useImageCacheContext()
+
   // --- Prefetching ---
   useEffect(() => {
     if (tabSections && tabSections.length > 0) {
       tabSections.forEach((section) => {
-        // Precargamos los datos para usarlos en el Hero Custom
         queryClient.prefetchQuery({
           queryKey: ["section-content", section.id],
           queryFn: () => getSectionContent(section),
@@ -97,6 +100,29 @@ const Home = () => {
       })
     }
   }, [tabSections, queryClient])
+
+  // --- Image Prefetching for Mobile ---
+  useEffect(() => {
+    if (!isMobile) return
+
+    const posterUrls: string[] = []
+
+    if (allMovies && allMovies.length > 0) {
+      allMovies
+        .filter(movie => movie.poster_path)
+        .forEach(movie => posterUrls.push(getImageUrl(movie.poster_path, "w500")))
+    }
+
+    if (allSeries && allSeries.length > 0) {
+      allSeries
+        .filter(show => show.poster_path)
+        .forEach(show => posterUrls.push(getImageUrl(show.poster_path, "w500")))
+    }
+
+    if (posterUrls.length > 0) {
+      prefetchImages(posterUrls)
+    }
+  }, [allMovies, allSeries, prefetchImages, isMobile])
 
   // --- Internal Sections Queries ---
   const { data: inicioInternalSections } = useQuery({

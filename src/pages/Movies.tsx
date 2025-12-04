@@ -1,8 +1,11 @@
+import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Navbar } from "@/components/Navbar"
 import { MobileNavbar } from "@/components/MobileNavbar"
 import { MediaCarousel } from "@/components/MediaCarousel"
 import { getAllMovies } from "@/lib/sectionQueries"
+import { useImageCacheContext } from "@/contexts/ImageCacheContext"
+import { getImageUrl } from "@/lib/tmdb"
 
 const Movies = () => {
   const { data: allMovies } = useQuery({
@@ -11,6 +14,17 @@ const Movies = () => {
     staleTime: Infinity,
     gcTime: Infinity,
   })
+
+  const { prefetchImages, isMobile } = useImageCacheContext()
+
+  useEffect(() => {
+    if (isMobile && allMovies && allMovies.length > 0) {
+      const posterUrls = allMovies
+        .filter(movie => movie.poster_path)
+        .map(movie => getImageUrl(movie.poster_path, "w500"))
+      prefetchImages(posterUrls)
+    }
+  }, [allMovies, prefetchImages, isMobile])
 
   return (
     <div className="min-h-screen bg-background">
