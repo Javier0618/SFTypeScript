@@ -1,0 +1,38 @@
+Hola, hay un problema de fluidez muy notorio en el cambio de pestañas (Inicio ↔ Películas ↔ Series ↔ Animes) al hacer swipe horizontal.
+
+Comportamiento actual (incorrecto):
+El deslizamiento empieza bien y se siente suave durante el 90 % del gesto, pero justo en el último 5–10 % del movimiento —cuando la nueva pestaña está a punto de alinearse perfectamente y quedar totalmente visible— hay un “pegue” o micro-congelamiento de ~150–300 ms.  
+Es como si en el momento del “snap” final o del release del dedo el navegador se quedara pensando antes de completar el movimiento. El resultado es que la pestaña nueva “salta” o se detiene un instante antes de colocarse en su posición definitiva. Esto rompe totalmente la sensación premium y fluida.
+
+Comportamiento esperado:
+El swipe debe ser perfectamente suave de principio a fin, incluyendo el último milisegundo y el “snap” final. Al soltar el dedo la pestaña debe llegar a su posición final de forma instantánea y sin ningún tipo de pausa o salto (exactamente como pasa en Netflix, Disney+, Spotify o cualquier app nativa de iOS/Android.
+
+Causas más probables (muy comunes en React + Vite):
+- El componente de pestañas usa Embla Carousel, Swiper o similar, pero tiene activado dragFree o resistance, y el cálculo del “snap o roundToNearest provoca un bloqueo del main thread al final.
+- Hay un useEffect o un estado que se actualiza justo cuando el slide termina (por ejemplo, setActiveIndex), lo que provoca un re-render pesado en ese preciso instante.
+- Falta aceleración por GPU en el momento del snap (will-change: transform no aplicado correctamente o se pierde al final).
+- El onDragEnd o onSettle está haciendo algún cálculo síncrono pesado (por ejemplo, precarga de imágenes de la siguiente pestaña).
+
+Soluciones rápidas y efectivas (por orden de prioridad):
+1. Si usan Embla Carousel → añadir estas opciones:
+   ```ts
+   {
+     dragFree: false,
+     containScroll: "trimSnaps",
+     watchDrag: true,
+     skipSnaps: true,        // ← esto elimina casi siempre el pegue final
+     dragThreshold: 10
+   }
+y en CSS:
+.embla__container { will-change: transform; }
+.embla__slide { transform: translateZ(0); }
+text2. Si usan Swiper → usar:
+```js
+speed: 300,
+resistance: false,
+allowTouchMove: true,
+touchReleaseOnEdges: true
+
+En cualquier caso → mover cualquier lógica de setActiveIndex o precarga al evento onSlideChangeStart o onDragStart (nunca en onSettle o onDragEnd).
+
+Este pequeño lag al final del swipe es actualmente el defecto más visible de toda la aplicación y hace que se sienta “barata” aunque todo lo demás esté muy bien hecho. Arreglarlo sube la percepción de calidad un 300 %.
