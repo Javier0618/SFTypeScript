@@ -1,0 +1,27 @@
+### Mejora solicitada: Sistema flexible de secciones internas con visibilidad controlada por pestañas principales
+
+Actualmente el administrador puede crear secciones (pestañas principales o secciones internas dentro de una pestaña). Necesito ampliar y clarificar la lógica de creación/edición de **secciones internas** (tanto personalizadas como por categoría) para que permitan elegir explícitamente **en qué pestañas principales** deben aparecer.
+
+#### Requisitos funcionales detallados
+
+1. **Al crear o editar una sección interna** (ya sea del tipo “Personalizada” o “Por categoría”) debe aparecer un nuevo campo obligatorio/multi-selección:
+   - **“Mostrar en las siguientes pestañas principales”** → Selector múltiple (checkboxes o multi-select) con todas las pestañas principales existentes (Inicio, Películas, Series, Animes, etc.).
+
+2. **Comportamiento según el tipo de sección interna**:
+
+   **A) Sección interna Personalizada**
+   - El contenido es fijo (el administrador elige manualmente qué títulos incluir).
+   - Si el admin marca que se muestre en varias pestañas principales (ej. Inicio + Películas + Animes), esa misma sección (con los mismos títulos) aparecerá como sección interna en **todas** las pestañas seleccionadas, sin filtrar por tipo de contenido.
+
+   **B) Sección interna Por Categoría** (ej. categoría = “Terror”)
+   - El contenido se genera automáticamente según la categoría elegida.
+   - El comportamiento debe variar según la pestaña principal donde se muestre:
+     | Pestaña principal | Contenido que debe mostrar la sección |
+     |-------------------|-----------------------------------------|
+     | Inicio            | Todos los títulos (películas, series, animes, etc.) que pertenezcan a la categoría “Terror” |
+     | Películas         | Solo películas de la categoría “Terror” |
+     | Series            | Solo series de la categoría “Terror” |
+     | Animes            | Solo animes de la categoría “Terror” |
+     | (etc.)            | Según el tipo de contenido de la pestaña |
+
+   - Es decir, la sección se **filtra automáticamente** según el tipo de contenido que maneja cada pestaña principal.
