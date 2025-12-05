@@ -199,3 +199,9 @@ Preferred communication style: Simple, everyday language.
 - Visit state persisted in sessionStorage to survive page reloads
 - Hero animations only play on first visit (controlled via `shouldAnimate` prop)
 - Netflix/Disney+ like experience: instant Home display without flash or reload effects
+
+**Unified Desktop/Mobile Layout**
+- Movies page (`/movies`) and TV Shows page (`/tv`) now share the same rich layout as mobile tabs
+- Both pages include: Hero section, StreamingPlatforms, MediaCarousel, and dynamic internal sections
+- Screen visibility filtering is respected across Navbar, MobileTabNavigation, and internal sections
+- Consistent user experience across all screen sizes
