@@ -69,7 +69,8 @@ Preferred communication style: Simple, everyday language.
 - `tv_shows_imported` - Imported TV show data with season information
 - `seasons` - TV show season details
 - `episodes` - Individual episode data with video URLs
-- `sections` - Dynamic content sections for homepage organization
+- `sections` - Dynamic content sections for homepage organization with screen visibility control
+  - `screen_visibility` column: Controls visibility by screen size ('all', 'mobile', 'desktop')
 - `section_items` - Items within custom sections
 - `streaming_platforms` - Streaming platform information and logos
 - `movie_platforms` & `tv_show_platforms` - Many-to-many relationships for platform assignments
