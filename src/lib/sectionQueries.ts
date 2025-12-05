@@ -137,6 +137,188 @@ export const getAllMovies = async (): Promise<Media[]> => {
   )
 }
 
+export interface PaginatedResult {
+  items: Media[]
+  nextPage: number | null
+  totalCount: number
+}
+
+const PAGE_SIZE = 30
+
+export const getMoviesPaginated = async (page: number = 0): Promise<PaginatedResult> => {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  const { data: movies, error, count } = await supabase
+    .from("movies_imported")
+    .select("*", { count: "exact" })
+    .order("vote_average", { ascending: false })
+    .range(from, to)
+
+  if (error) throw error
+
+  const items: Media[] = movies?.map((movie) => ({
+    id: movie.tmdb_id,
+    title: movie.title,
+    poster_path: movie.poster_path,
+    backdrop_path: movie.backdrop_path,
+    overview: movie.overview,
+    release_date: movie.release_date,
+    vote_average: Number(movie.vote_average) || 0,
+    vote_count: 0,
+    genre_ids: [],
+  })) || []
+
+  const totalCount = count || 0
+  const hasMore = from + items.length < totalCount
+
+  return {
+    items,
+    nextPage: hasMore ? page + 1 : null,
+    totalCount,
+  }
+}
+
+export const getTVShowsPaginated = async (page: number = 0): Promise<PaginatedResult> => {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  const { data: tvShows, error, count } = await supabase
+    .from("tv_shows_imported")
+    .select("*", { count: "exact" })
+    .order("vote_average", { ascending: false })
+    .range(from, to)
+
+  if (error) throw error
+
+  const items: Media[] = tvShows?.map((show) => ({
+    id: show.tmdb_id,
+    name: show.name,
+    poster_path: show.poster_path,
+    backdrop_path: show.backdrop_path,
+    overview: show.overview,
+    first_air_date: show.first_air_date,
+    vote_average: Number(show.vote_average) || 0,
+    vote_count: 0,
+    genre_ids: [],
+  })) || []
+
+  const totalCount = count || 0
+  const hasMore = from + items.length < totalCount
+
+  return {
+    items,
+    nextPage: hasMore ? page + 1 : null,
+    totalCount,
+  }
+}
+
+export const getCategoryContentPaginated = async (
+  category: string,
+  page: number = 0,
+  contentType: "all" | "movie" | "tv" = "all",
+): Promise<PaginatedResult> => {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+  
+  const items: Media[] = []
+  let totalMovies = 0
+  let totalTVShows = 0
+
+  if (contentType === "all" || contentType === "movie") {
+    const { count: moviesCount } = await supabase
+      .from("movies_imported")
+      .select("*", { count: "exact", head: true })
+      .ilike("category", `%${category}%`)
+    
+    totalMovies = moviesCount || 0
+  }
+
+  if (contentType === "all" || contentType === "tv") {
+    const { count: tvCount } = await supabase
+      .from("tv_shows_imported")
+      .select("*", { count: "exact", head: true })
+      .ilike("category", `%${category}%`)
+    
+    totalTVShows = tvCount || 0
+  }
+
+  const totalCount = totalMovies + totalTVShows
+
+  if (contentType === "movie" || (contentType === "all" && from < totalMovies)) {
+    const movieFrom = contentType === "movie" ? from : from
+    const movieTo = contentType === "movie" ? to : Math.min(to, totalMovies - 1)
+    
+    if (movieFrom < totalMovies) {
+      const { data: movies, error: moviesError } = await supabase
+        .from("movies_imported")
+        .select("*")
+        .ilike("category", `%${category}%`)
+        .order("vote_average", { ascending: false })
+        .order("tmdb_id", { ascending: true })
+        .range(movieFrom, movieTo)
+
+      if (moviesError) throw moviesError
+
+      const movieItems: Media[] = movies?.map((movie) => ({
+        id: movie.tmdb_id,
+        title: movie.title,
+        poster_path: movie.poster_path,
+        backdrop_path: movie.backdrop_path,
+        overview: movie.overview,
+        release_date: movie.release_date,
+        vote_average: Number(movie.vote_average) || 0,
+        vote_count: 0,
+        genre_ids: [],
+      })) || []
+
+      items.push(...movieItems)
+    }
+  }
+
+  if (contentType === "tv" || (contentType === "all" && from + items.length <= to)) {
+    const remainingSlots = PAGE_SIZE - items.length
+    if (remainingSlots > 0) {
+      const tvFrom = contentType === "tv" ? from : Math.max(0, from - totalMovies)
+      const tvTo = tvFrom + remainingSlots - 1
+
+      if (tvFrom < totalTVShows) {
+        const { data: tvShows, error: tvError } = await supabase
+          .from("tv_shows_imported")
+          .select("*")
+          .ilike("category", `%${category}%`)
+          .order("vote_average", { ascending: false })
+          .order("tmdb_id", { ascending: true })
+          .range(tvFrom, tvTo)
+
+        if (tvError) throw tvError
+
+        const tvItems: Media[] = tvShows?.map((show) => ({
+          id: show.tmdb_id,
+          name: show.name,
+          poster_path: show.poster_path,
+          backdrop_path: show.backdrop_path,
+          overview: show.overview,
+          first_air_date: show.first_air_date,
+          vote_average: Number(show.vote_average) || 0,
+          vote_count: 0,
+          genre_ids: [],
+        })) || []
+
+        items.push(...tvItems)
+      }
+    }
+  }
+
+  const hasMore = from + items.length < totalCount
+
+  return {
+    items,
+    nextPage: hasMore ? page + 1 : null,
+    totalCount,
+  }
+}
+
 // Get all TV shows (for popular series section)
 export const getAllTVShows = async (): Promise<Media[]> => {
   const { data: tvShows, error } = await supabase

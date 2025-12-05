@@ -1,11 +1,18 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useInfiniteQuery } from "@tanstack/react-query"
 import { useParams } from "react-router-dom"
+import { useEffect, useRef, useCallback } from "react"
 import { Navbar } from "@/components/Navbar"
 import { MobileNavbar } from "@/components/MobileNavbar"
 import { MovieCard } from "@/components/MovieCard"
-import { getAllMovies, getAllTVShows, getAllCategoryContent } from "@/lib/sectionQueries"
+import { 
+  getMoviesPaginated, 
+  getTVShowsPaginated, 
+  getCategoryContentPaginated,
+  PaginatedResult 
+} from "@/lib/sectionQueries"
+import { Loader2 } from "lucide-react"
 
 const categoryTranslations: Record<string, string> = {
   action: "Acción",
@@ -36,20 +43,56 @@ const categoryTranslations: Record<string, string> = {
 
 const ViewAll = () => {
   const { type, category } = useParams<{ type: string; category?: string }>()
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  const { data: content, isLoading } = useQuery({
-    queryKey: ["view-all", type, category],
-    queryFn: async () => {
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery<PaginatedResult>({
+    queryKey: ["view-all-paginated", type, category],
+    queryFn: async ({ pageParam = 0 }) => {
       if (type === "movies") {
-        return getAllMovies()
+        return getMoviesPaginated(pageParam as number)
       } else if (type === "series") {
-        return getAllTVShows()
+        return getTVShowsPaginated(pageParam as number)
       } else if (type === "category" && category) {
-        return getAllCategoryContent(category)
+        return getCategoryContentPaginated(category, pageParam as number)
       }
-      return []
+      return { items: [], nextPage: null, totalCount: 0 }
     },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
   })
+
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage()
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  )
+
+  useEffect(() => {
+    const element = loadMoreRef.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "200px",
+      threshold: 0,
+    })
+
+    observer.observe(element)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [handleObserver])
 
   const getTitle = () => {
     if (type === "movies") return "Películas"
@@ -61,6 +104,9 @@ const ViewAll = () => {
     return "Todos"
   }
 
+  const allItems = data?.pages.flatMap((page) => page.items) || []
+  const totalCount = data?.pages[0]?.totalCount || 0
+
   return (
     <div className="min-h-screen bg-background">
       <div className="hidden md:block">
@@ -68,7 +114,7 @@ const ViewAll = () => {
       </div>
       <MobileNavbar showBackButton={true} title={getTitle()} />
 
-      <div className="container mx-auto px-2 pt-4 pb-2 md:pt-8">
+      <div className="container mx-auto px-2 pt-4 pb-20 md:pt-8">
         {isLoading ? (
           <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1">
             {[...Array(12)].map((_, i) => (
@@ -76,12 +122,28 @@ const ViewAll = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1">
-            {content?.map((item) => {
-              const itemType = "title" in item ? "movie" : "tv"
-              return <MovieCard key={item.id} item={item} type={itemType} titleLines="full" />
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1">
+              {allItems.map((item, index) => {
+                const itemType = "title" in item ? "movie" : "tv"
+                return <MovieCard key={`${item.id}-${index}`} item={item} type={itemType} titleLines="full" />
+              })}
+            </div>
+
+            <div ref={loadMoreRef} className="w-full py-8 flex justify-center">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Cargando más...</span>
+                </div>
+              )}
+              {!hasNextPage && allItems.length > 0 && (
+                <p className="text-muted-foreground text-sm">
+                  {allItems.length} de {totalCount} elementos
+                </p>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
