@@ -1,0 +1,51 @@
+### Tarea: Implementar caché agresivo de imágenes (posters y backdrops) en móviles (max-width: 768px) para lograr una experiencia 100% nativa y sin recargas visibles
+
+**Objetivo principal**  
+En dispositivos móviles (≤ 768px), queremos que una vez que el usuario visita una sección (Inicio, Películas, Series, detalle de título, etc.), **todos los posters y backdrops** que se muestran en esa sección queden guardados en caché local del navegador durante toda la sesión del usuario, de forma que al volver a esa sección (navegación hacia atrás, cambio de pestaña, etc.) las imágenes aparezcan **instantáneamente** sin parpadeos ni recargas desde la red.
+
+**Requisitos técnicos**
+
+1. **Ámbito**
+   - La optimización se aplicará **solo en pantallas ≤ 768px** (mobile/tablet pequeño).
+   - En desktop puede seguir comportándose como hasta ahora (lazy loading normal).
+
+2. **Origen de las imágenes**
+   Las URLs vienen de TMDB y están guardadas en la base de datos:
+   - Películas → tabla `movies_imported` → columnas `poster_path` y `backdrop_path`
+   - Series → tabla `tv_shows_imported` → columnas `poster_path` y `backdrop_path`
+   - La URL completa se construye normalmente como:  
+     `https://image.tmdb.org/t/p/w342${poster_path}` (o el tamaño que usemos: w342, w500, original, etc.)
+
+3. **Comportamiento deseado**
+   - Cuando el usuario entra por primera vez al Home → se precargan y cachean todos los posters/backdrops visibles + los de las primeras X tarjetas que estén en viewport cercano.
+   - Cuando el usuario entra a la pestaña “Películas” o “Series” → se precargan y cachean todos los posters de los resultados mostrados y los siguientes (scroll infinito o paginación).
+   - Cuando el usuario entra al detalle de una película/serie → se cachean tanto el poster como el backdrop (y opcionalmente los backdrops del carrusel de imágenes si existen).
+   - Al volver atrás o cambiar de pestaña → las imágenes deben aparecer **inmediatamente** (carga desde Cache Storage o Memory Cache), sin efecto skeleton ni placeholder parpadeante.
+
+4. **Estrategia técnica recomendada (puedes elegir o combinar)**
+
+   Opción A – Cache API + Service Worker (recomendado para control total)
+   - Crear/modificar el Service Worker actual (o crear uno nuevo) para:
+     - Cachear agresivamente todas las imágenes de TMDB al vuelo la primera vez que se solicitan.
+     - Estrategia “Cache First, falling back to Network” para dominios `https://image.tmdb.org`.
+     - Opcional: precachear imágenes al cargar cada sección usando `caches.open()` + `cache.put()`.
+
+   Opción B – IndexedDB + librería (si no quieres tocar Service Worker)
+   - Usar `idb-keyval` o `localforage` para guardar los blobs de las imágenes con clave = URL completa.
+   - Antes de renderizar cualquier `<img>`, comprobar si ya existe en IndexedDB → si existe, crear Object URL y usarlo como src.
+
+   Opción C – Memory cache simple + prefetch (más rápido de implementar)
+   - Al cargar cada sección, hacer un `Promise.all()` que haga fetch de todas las URLs de imágenes en los tamaños necesarios y las guarde en un Map global en memoria + forzar caché del navegador con `fetch(url, { cache: 'force-cache' })`.
+
+5.
+
+5. **Detalles de implementación esperados**
+   - No debe romper la experiencia en desktop.
+   - Debe seguir funcionando aunque el usuario recargue la página (por eso Cache API o IndexedDB es mejor que solo memoria).
+   - Las imágenes deben seguir usando lazy loading con `loading="lazy"` para no bloquear el hilo principal, pero una vez cacheadas aparecerán instantáneamente.
+   - Limpiar el caché al cerrar sesión o al cabo de X horas/días (opcional, pero recomendable).
+
+**Resultado esperado**
+Una sensación completamente nativa en móvil: el usuario navega entre Inicio → Películas → Detalle → Atrás → Series y todas las imágenes aparecen al instante, sin skeletons ni recargas visibles, incluso con conexión lenta o intermitente.
+
+¡Gracias!
