@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { getAllSections, createSection, updateSection, deleteSection, type Section, type ScreenVisibility } from "@/lib/sectionQueries"
-import { Monitor, Smartphone, MonitorSmartphone } from "lucide-react"
+import { Monitor, Smartphone, MonitorSmartphone, Pencil } from "lucide-react"
 import { Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react"
 import { CustomSectionEditor } from "./CustomSectionEditor"
 
@@ -42,10 +42,28 @@ const getContentTypeForTab = (internalTab: string): "all" | "movie" | "tv" => {
   return "all" // For "inicio" or custom tabs
 }
 
+interface EditSectionForm {
+  name: string
+  type: "category" | "custom"
+  category: string
+  placement: "tab" | "internal"
+  internal_tab: string
+  screen_visibility: ScreenVisibility
+}
+
 export const SectionManager = () => {
   const queryClient = useQueryClient()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingSection, setEditingSection] = useState<Section | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState<EditSectionForm>({
+    name: "",
+    type: "category",
+    category: "",
+    placement: "internal",
+    internal_tab: "inicio",
+    screen_visibility: "all",
+  })
   const [newSection, setNewSection] = useState({
     name: "",
     type: "category" as "category" | "custom",
@@ -142,6 +160,49 @@ export const SectionManager = () => {
       id: section.id,
       updates: { visible: !section.visible },
     })
+  }
+
+  const openEditDialog = (section: Section) => {
+    setEditingSection(section)
+    setEditForm({
+      name: section.name,
+      type: section.type as "category" | "custom",
+      category: section.category || "",
+      placement: (section.placement || "internal") as "tab" | "internal",
+      internal_tab: section.internal_tab || "inicio",
+      screen_visibility: (section.screen_visibility || "all") as ScreenVisibility,
+    })
+    setIsEditOpen(true)
+  }
+
+  const handleEditSubmit = () => {
+    if (!editingSection) return
+    
+    if (!editForm.name) {
+      toast.error("El nombre es requerido")
+      return
+    }
+    if (editForm.type === "category" && !editForm.category) {
+      toast.error("La categoría es requerida")
+      return
+    }
+
+    const contentType = editForm.placement === "internal" ? getContentTypeForTab(editForm.internal_tab) : "all"
+
+    updateMutation.mutate({
+      id: editingSection.id,
+      updates: {
+        name: editForm.name,
+        type: editForm.type,
+        category: editForm.type === "category" ? editForm.category : null,
+        placement: editForm.placement,
+        internal_tab: editForm.placement === "internal" ? editForm.internal_tab : null,
+        content_type: contentType,
+        screen_visibility: editForm.screen_visibility,
+      },
+    })
+    setIsEditOpen(false)
+    setEditingSection(null)
   }
 
   const moveSection = (section: Section, direction: "up" | "down") => {
@@ -408,6 +469,10 @@ export const SectionManager = () => {
                     {section.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </Button>
 
+                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(section)} title="Editar propiedades">
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+
                   {section.type === "custom" && <CustomSectionEditor section={section} />}
 
                   <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(section.id)}>
@@ -425,6 +490,159 @@ export const SectionManager = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Sección</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Nombre de la Sección</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Ej: Animes, Doramas, Terror"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-type">Tipo de Sección</Label>
+              <Select
+                value={editForm.type}
+                onValueChange={(value: "category" | "custom") => setEditForm({ ...editForm, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="category">Por Categoría</SelectItem>
+                  <SelectItem value="custom">Personalizada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {editForm.type === "category" && (
+              <div>
+                <Label htmlFor="edit-category">Categoría</Label>
+                <Select
+                  value={editForm.category}
+                  onValueChange={(value) => setEditForm({ ...editForm, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="edit-placement">Ubicación en Móvil</Label>
+              <Select
+                value={editForm.placement}
+                onValueChange={(value: "tab" | "internal") => setEditForm({ ...editForm, placement: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tab">Pestaña Principal</SelectItem>
+                  <SelectItem value="internal">Sección Interna</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {editForm.placement === "tab"
+                  ? "Aparece como pestaña en el menú de navegación móvil"
+                  : "Se muestra como carrusel dentro de una pestaña existente"}
+              </p>
+            </div>
+
+            {editForm.placement === "internal" && (
+              <div>
+                <Label htmlFor="edit-internal_tab">Pestaña de Destino</Label>
+                <Select
+                  value={editForm.internal_tab}
+                  onValueChange={(value) => setEditForm({ ...editForm, internal_tab: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inicio">Inicio</SelectItem>
+                    <SelectItem value="peliculas">Películas</SelectItem>
+                    <SelectItem value="series">Series</SelectItem>
+                    {availableTabSections
+                      .filter((s) => s.id !== editingSection?.id)
+                      .map((tabSection) => (
+                        <SelectItem key={tabSection.id} value={tabSection.id}>
+                          {tabSection.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {editForm.internal_tab === "peliculas"
+                    ? "Esta sección solo mostrará películas"
+                    : editForm.internal_tab === "series"
+                      ? "Esta sección solo mostrará series"
+                      : "Esta sección mostrará películas y series"}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="edit-screen_visibility">Visibilidad por Pantalla</Label>
+              <Select
+                value={editForm.screen_visibility}
+                onValueChange={(value: ScreenVisibility) => setEditForm({ ...editForm, screen_visibility: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <MonitorSmartphone className="w-4 h-4" />
+                      <span>Todos los dispositivos</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="mobile">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4" />
+                      <span>Solo móvil y tablet</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="desktop">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="w-4 h-4" />
+                      <span>Solo desktop</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {editForm.screen_visibility === "all"
+                  ? "Se mostrará en todos los dispositivos"
+                  : editForm.screen_visibility === "mobile"
+                    ? "Solo visible en móvil y tablet (≤768px)"
+                    : "Solo visible en escritorio (≥769px)"}
+              </p>
+            </div>
+
+            <Button onClick={handleEditSubmit} className="w-full" disabled={updateMutation.isPending}>
+              Guardar Cambios
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
