@@ -21,6 +21,7 @@ import { MobileTabNavigation, type Tab } from "@/components/MobileTabNavigation"
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation"
 import { useImageCacheContext } from "@/contexts/ImageCacheContext"
 import { getImageUrl } from "@/lib/tmdb"
+import { useScreenSize, shouldShowForScreen } from "@/hooks/useScreenSize"
 
 // --- Helper Functions ---
 const getSessionKey = () => {
@@ -55,6 +56,7 @@ const seededShuffle = <T,>(array: T[], seed: string): T[] => {
 const Home = () => {
   const [activeTab, setActiveTab] = useState<string>("inicio")
   const queryClient = useQueryClient()
+  const { screenType } = useScreenSize()
   
   const carouselRef = useRef<HTMLDivElement>(null)
   const heroItemsCache = useRef<Record<string, any[]>>({})
@@ -150,12 +152,15 @@ const Home = () => {
       { id: "peliculas", label: "Películas", icon: <Film className="w-4 h-4" /> },
       { id: "series", label: "Series", icon: <Tv className="w-4 h-4" /> },
     ]
-    const customTabs: Tab[] = (tabSections || []).map((section) => ({
+    const filteredTabSections = (tabSections || []).filter((section) =>
+      shouldShowForScreen((section as any).screen_visibility, screenType)
+    )
+    const customTabs: Tab[] = filteredTabSections.map((section) => ({
       id: section.id,
       label: section.name,
     }))
     return [...baseTabs, ...customTabs]
-  }, [tabSections])
+  }, [tabSections, screenType])
 
   const currentTabIndex = useMemo(() => {
     return tabs.findIndex((tab) => tab.id === activeTab)
@@ -246,9 +251,11 @@ const Home = () => {
               type="tv"
               viewAllLink="/view-all/series"
             />
-            {inicioInternalSections?.map((section) => (
-              <DynamicSection key={section.id} section={section} />
-            ))}
+            {inicioInternalSections
+              ?.filter((section) => shouldShowForScreen((section as any).screen_visibility, screenType))
+              .map((section) => (
+                <DynamicSection key={section.id} section={section} />
+              ))}
           </div>
         </>
       )
@@ -268,9 +275,11 @@ const Home = () => {
               type="movie"
               viewAllLink="/view-all/movies"
             />
-            {peliculasInternalSections?.map((section) => (
-              <DynamicSection key={section.id} section={section} />
-            ))}
+            {peliculasInternalSections
+              ?.filter((section) => shouldShowForScreen((section as any).screen_visibility, screenType))
+              .map((section) => (
+                <DynamicSection key={section.id} section={section} />
+              ))}
           </div>
         </>
       )
@@ -285,9 +294,11 @@ const Home = () => {
           </div>
           <div className="container mx-auto px-2 py-1">
             <MediaCarousel title="Todas las Series" items={allSeries || []} type="tv" viewAllLink="/view-all/series" />
-            {seriesInternalSections?.map((section) => (
-              <DynamicSection key={section.id} section={section} />
-            ))}
+            {seriesInternalSections
+              ?.filter((section) => shouldShowForScreen((section as any).screen_visibility, screenType))
+              .map((section) => (
+                <DynamicSection key={section.id} section={section} />
+              ))}
           </div>
         </>
       )
@@ -303,7 +314,7 @@ const Home = () => {
         </div>
         <div className="container mx-auto px-2 py-1">
            <CustomTabContent sectionId={tabId} />
-           <DynamicSectionsForTab tabId={tabId} />
+           <DynamicSectionsForTab tabId={tabId} screenType={screenType} />
         </div>
       </>
     )
@@ -378,7 +389,7 @@ const Home = () => {
 
 // --- Sub-components (Sin Cambios) ---
 
-const DynamicSectionsForTab = ({ tabId }: { tabId: string }) => {
+const DynamicSectionsForTab = ({ tabId, screenType }: { tabId: string; screenType: "mobile" | "desktop" }) => {
    const { data: internalSections, isLoading } = useQuery({
     queryKey: ["internal-sections", tabId],
     queryFn: () => getInternalSections(tabId),
@@ -390,9 +401,11 @@ const DynamicSectionsForTab = ({ tabId }: { tabId: string }) => {
   
   return (
     <>
-      {internalSections?.map((section) => (
-        <DynamicSection key={section.id} section={section} />
-      ))}
+      {internalSections
+        ?.filter((section) => shouldShowForScreen((section as any).screen_visibility, screenType))
+        .map((section) => (
+          <DynamicSection key={section.id} section={section} />
+        ))}
     </>
   )
 }
