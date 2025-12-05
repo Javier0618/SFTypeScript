@@ -190,3 +190,11 @@ Preferred communication style: Simple, everyday language.
 - Cache cleared on user logout for privacy
 - Maximum cache size of 500 images in Service Worker cache
 - Components that use caching: CachedImage, Hero, MediaCarousel, MovieDetail, TVShowDetail
+
+**Home Keep-Alive System**
+- Home component stays mounted permanently in the DOM using CSS display toggle
+- Prevents re-renders and image reloading when navigating back to Home
+- HomeVisitContext (`src/contexts/HomeVisitContext.tsx`) tracks first visit state
+- Visit state persisted in sessionStorage to survive page reloads
+- Hero animations only play on first visit (controlled via `shouldAnimate` prop)
+- Netflix/Disney+ like experience: instant Home display without flash or reload effects
