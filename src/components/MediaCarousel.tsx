@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { MovieCard } from "./MovieCard";
-import { Movie, TVShow } from "@/lib/tmdb";
+import { Movie, TVShow, getImageUrl } from "@/lib/tmdb";
 import { Button } from "./ui/button";
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -11,6 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { useImageCacheContext } from "@/contexts/ImageCacheContext";
 
 interface MediaCarouselProps {
   title: string;
@@ -50,12 +51,25 @@ const getSessionKey = () => {
 
 export const MediaCarousel = ({ title, items, type = "mixed", viewAllLink, shuffleSeed }: MediaCarouselProps) => {
   const sessionKey = useMemo(() => getSessionKey(), [])
+  const { prefetchImages, isMobile } = useImageCacheContext()
   
   const shuffledItems = useMemo(() => {
     if (!items || items.length === 0) return []
     const seed = shuffleSeed || `${title}-${sessionKey}`
     return seededShuffle(items, seed)
   }, [items, title, sessionKey, shuffleSeed])
+
+  useEffect(() => {
+    if (!isMobile || shuffledItems.length === 0) return
+
+    const posterUrls = shuffledItems
+      .filter(item => item.poster_path)
+      .map(item => getImageUrl(item.poster_path!, "w500"))
+
+    if (posterUrls.length > 0) {
+      prefetchImages(posterUrls)
+    }
+  }, [shuffledItems, isMobile, prefetchImages])
   
   if (!shuffledItems || shuffledItems.length === 0) return null;
 

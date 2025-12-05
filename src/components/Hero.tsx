@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
-import { useQuery } from "@tanstack/react-query" // <--- Importamos useQuery
+import { useEffect, useMemo } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { getImageUrl, type Media, type Movie, type TVShow } from "@/lib/tmdb"
 import { Button } from "@/components/ui/button"
 import { Play, Info } from "lucide-react"
@@ -10,6 +10,7 @@ import useEmblaCarousel from "embla-carousel-react"
 import Autoplay from "embla-carousel-autoplay"
 import Fade from "embla-carousel-fade"
 import { cn } from "@/lib/utils"
+import { useImageCacheContext } from "@/contexts/ImageCacheContext"
 
 // =========================================================
 // 1. NUEVO COMPONENTE: HeroTitle
@@ -93,6 +94,23 @@ interface HeroProps {
 export const Hero = ({ items, isActive = true, className }: HeroProps) => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 7000 }), Fade()])
   const navigate = useNavigate()
+  const { prefetchBackdrops, prefetchPriority, isMobile } = useImageCacheContext()
+
+  const backdropUrls = useMemo(() => {
+    if (!items || items.length === 0) return []
+    return items
+      .filter(item => item.backdrop_path)
+      .map(item => getImageUrl(item.backdrop_path!, "original"))
+  }, [items])
+
+  useEffect(() => {
+    if (isMobile && backdropUrls.length > 0) {
+      prefetchPriority(backdropUrls.slice(0, 3))
+      if (backdropUrls.length > 3) {
+        prefetchBackdrops(backdropUrls.slice(3))
+      }
+    }
+  }, [backdropUrls, isMobile, prefetchPriority, prefetchBackdrops])
 
   useEffect(() => {
     if (!emblaApi) return

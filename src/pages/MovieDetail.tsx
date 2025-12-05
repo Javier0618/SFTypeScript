@@ -12,17 +12,16 @@ import { useWatchHistory } from "@/hooks/useWatchHistory"
 // 1. AÑADIDO: Importar useEffect
 import { useMemo, useEffect } from "react"
 import { useRealtimeMovie } from "@/hooks/useRealtimeMovie"
-// Eliminado useIsMobile
 import { VideoPlayer } from "@/components/VideoPlayer"
+import { useImageCacheContext } from "@/contexts/ImageCacheContext"
 
-// 2. AÑADIDO: Importar el plugin de Capacitor
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { StatusBar } from '@capacitor/status-bar';
 
 const MovieDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  // Eliminado isMobile
+  const { prefetchPriority, prefetchImages, isMobile } = useImageCacheContext()
 
 useEffect(() => {
     // 1. Configuración inicial al cargar la pantalla (Modo Normal)
@@ -125,6 +124,32 @@ useEffect(() => {
   }, [movie])
 
   useWatchHistory(watchItem)
+
+  useEffect(() => {
+    if (!isMobile) return
+
+    const imagesToPrefetch: string[] = []
+
+    if (movie?.poster_path) {
+      imagesToPrefetch.push(getImageUrl(movie.poster_path, "w500"))
+    }
+    if (movie?.backdrop_path) {
+      imagesToPrefetch.push(getImageUrl(movie.backdrop_path, "original"))
+    }
+
+    if (imagesToPrefetch.length > 0) {
+      prefetchPriority(imagesToPrefetch)
+    }
+
+    if (relatedMovies && relatedMovies.length > 0) {
+      const relatedPosterUrls = relatedMovies
+        .filter(m => m.poster_path)
+        .map(m => getImageUrl(m.poster_path!, "w500"))
+      if (relatedPosterUrls.length > 0) {
+        prefetchImages(relatedPosterUrls)
+      }
+    }
+  }, [movie, relatedMovies, isMobile, prefetchPriority, prefetchImages])
 
   // Un solo reproductor para toda la vida del componente
   const videoPlayer = (

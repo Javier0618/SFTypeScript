@@ -179,3 +179,14 @@ Preferred communication style: Simple, everyday language.
 - Separate mobile and desktop navigation components
 - Touch-optimized UI with swipe gestures
 - Native Android app capabilities via Capacitor
+
+**Aggressive Image Caching (Mobile)**
+- Service Worker (`public/sw-image-cache.js`) with Cache-First strategy for TMDB images
+- Images are cached on first load and served instantly on subsequent views
+- Priority prefetching for immediately visible images (backdrops, posters)
+- Background prefetching for images about to enter viewport
+- In-memory cache with reference counting for instant display without async operations
+- Memory cache trimming to prevent leaks (max 80 entries, LRU eviction)
+- Cache cleared on user logout for privacy
+- Maximum cache size of 500 images in Service Worker cache
+- Components that use caching: CachedImage, Hero, MediaCarousel, MovieDetail, TVShowDetail

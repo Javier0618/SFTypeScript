@@ -16,11 +16,11 @@ import { useWatchHistory } from "@/hooks/useWatchHistory"
 import { cn } from "@/lib/utils"
 import { useRealtimeEpisodes } from "@/hooks/useRealtimeEpisodes"
 import { VideoPlayer } from "@/components/VideoPlayer"
+import { useImageCacheContext } from "@/contexts/ImageCacheContext"
 
-// 1. AÑADIDO: Importar el plugin de Capacitor y App para el botón atrás
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { StatusBar } from '@capacitor/status-bar';
-import { App as CapacitorApp } from '@capacitor/app'; // <--- IMPORTANTE
+import { App as CapacitorApp } from '@capacitor/app';
 
 // Definimos la estructura que esperamos usar en el componente
 interface Season {
@@ -49,6 +49,7 @@ const TVShowDetail = () => {
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null)
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
+  const { prefetchPriority, prefetchImages, isMobile } = useImageCacheContext()
 
 // 2. MODIFICADO: useEffect para Barra de Estado + Botón Atrás Físico y de Navegador
   useEffect(() => {
@@ -269,6 +270,41 @@ const TVShowDetail = () => {
   }, [show])
 
   useWatchHistory(watchItem)
+
+  useEffect(() => {
+    if (!isMobile) return
+
+    const imagesToPrefetch: string[] = []
+
+    if (show?.poster_path) {
+      imagesToPrefetch.push(getImageUrl(show.poster_path, "w500"))
+    }
+    if (show?.backdrop_path) {
+      imagesToPrefetch.push(getImageUrl(show.backdrop_path, "original"))
+    }
+
+    if (imagesToPrefetch.length > 0) {
+      prefetchPriority(imagesToPrefetch)
+    }
+
+    if (relatedShows && relatedShows.length > 0) {
+      const relatedPosterUrls = relatedShows
+        .filter(s => s.poster_path)
+        .map(s => getImageUrl(s.poster_path!, "w500"))
+      if (relatedPosterUrls.length > 0) {
+        prefetchImages(relatedPosterUrls)
+      }
+    }
+
+    if (seasonWithTmdbData?.episodes) {
+      const episodeStillUrls = seasonWithTmdbData.episodes
+        .filter(ep => ep.still_path)
+        .map(ep => getImageUrl(ep.still_path!, "w300"))
+      if (episodeStillUrls.length > 0) {
+        prefetchImages(episodeStillUrls)
+      }
+    }
+  }, [show, relatedShows, seasonWithTmdbData, isMobile, prefetchPriority, prefetchImages])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget
