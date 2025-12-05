@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { useAuth } from "@/hooks/useAuth"
 import { useAdmin } from "@/hooks/useAdmin"
 import { supabase } from "@/integrations/supabase/client"
+import { getTabSections } from "@/lib/sectionQueries"
+import { shouldShowForScreen } from "@/hooks/useScreenSize"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +28,16 @@ export const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const { user } = useAuth()
   const { isAdmin } = useAdmin()
+
+  const { data: tabSections } = useQuery({
+    queryKey: ["tab-sections"],
+    queryFn: getTabSections,
+    staleTime: Infinity,
+  })
+
+  const desktopTabSections = tabSections?.filter((section) =>
+    shouldShowForScreen(section.screen_visibility as "all" | "mobile" | "desktop", "desktop")
+  ) || []
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +67,11 @@ export const Navbar = () => {
               <Link to="/">
                 <Button
                   variant="ghost"
-                  className={location.pathname === "/" ? "text-primary" : "text-muted-foreground"}
+                  className={
+                    location.pathname === "/" && !location.search.includes("tab=")
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }
                 >
                   Inicio
                 </Button>
@@ -77,6 +94,20 @@ export const Navbar = () => {
                   Series
                 </Button>
               </Link>
+              {desktopTabSections.map((section) => (
+                <Link key={section.id} to={`/?tab=${section.id}`}>
+                  <Button
+                    variant="ghost"
+                    className={
+                      location.pathname === "/" && location.search.includes(`tab=${section.id}`)
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {section.name}
+                  </Button>
+                </Link>
+              ))}
             </div>
           </div>
           <form onSubmit={handleSearch} className="flex items-center gap-2">

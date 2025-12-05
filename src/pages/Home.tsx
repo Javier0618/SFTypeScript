@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
 import { HomeIcon, Film, Tv } from "lucide-react"
 import { Hero } from "@/components/Hero"
 import { MediaCarousel } from "@/components/MediaCarousel"
@@ -54,13 +55,30 @@ const seededShuffle = <T,>(array: T[], seed: string): T[] => {
 // ------------------------
 
 const Home = () => {
-  const [activeTab, setActiveTab] = useState<string>("inicio")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = searchParams.get("tab")
+  const [activeTab, setActiveTab] = useState<string>(tabFromUrl || "inicio")
   const queryClient = useQueryClient()
   const { screenType } = useScreenSize()
   
   const carouselRef = useRef<HTMLDivElement>(null)
   const heroItemsCache = useRef<Record<string, any[]>>({})
   const sessionKey = useMemo(() => getSessionKey(), [])
+
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl)
+    }
+  }, [tabFromUrl])
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    if (tabId === "inicio") {
+      setSearchParams({})
+    } else {
+      setSearchParams({ tab: tabId })
+    }
+  }
 
   // --- Data Queries ---
   const { data: tabSections } = useQuery({
@@ -169,13 +187,13 @@ const Home = () => {
   // --- Swipe Logic ---
   const handleSwipeLeft = () => {
     if (currentTabIndex < tabs.length - 1) {
-      setActiveTab(tabs[currentTabIndex + 1].id)
+      handleTabChange(tabs[currentTabIndex + 1].id)
     }
   }
 
   const handleSwipeRight = () => {
     if (currentTabIndex > 0) {
-      setActiveTab(tabs[currentTabIndex - 1].id)
+      handleTabChange(tabs[currentTabIndex - 1].id)
     }
   }
 
@@ -327,7 +345,7 @@ const Home = () => {
         <Navbar />
       </div>
       <MobileNavbar />
-      <MobileTabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+      <MobileTabNavigation tabs={tabs} activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Desktop View */}
       <div className="hidden md:block">
