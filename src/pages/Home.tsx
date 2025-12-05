@@ -129,12 +129,11 @@ const Home = () => {
   };
 
   useEffect(() => {
-    if (tabFromUrl && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
-    } else if (!tabFromUrl && activeTab !== "inicio") {
-      setActiveTab("inicio");
+    const targetTab = tabFromUrl || "inicio";
+    if (targetTab !== activeTab) {
+      setActiveTab(targetTab);
     }
-  }, [tabFromUrl]);
+  }, [tabFromUrl, activeTab]);
 
   const { data: inicioInternalSections } = useQuery({
     queryKey: ["internal-sections", "inicio"],
@@ -385,9 +384,11 @@ const Home = () => {
             return (
               <div
                 key={tab.id}
-                className="w-full"
+                className="w-full overflow-x-hidden"
                 style={{
+                  width: "100vw",
                   minWidth: "100vw",
+                  maxWidth: "100vw",
                   position: isActive ? "relative" : "absolute",
                   top: 0,
                   left: `${index * 100}%`,

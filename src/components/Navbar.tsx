@@ -64,18 +64,17 @@ export const Navbar = () => {
             />
             </Link>
             <div className="hidden md:flex gap-6">
-              <Link to="/">
-                <Button
-                  variant="ghost"
-                  className={
-                    location.pathname === "/" && !location.search.includes("tab=")
-                      ? "text-primary"
-                      : "text-muted-foreground"
-                  }
-                >
-                  Inicio
-                </Button>
-              </Link>
+              <Button
+                variant="ghost"
+                className={
+                  location.pathname === "/" && !location.search.includes("tab=")
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }
+                onClick={() => navigate("/", { replace: true })}
+              >
+                Inicio
+              </Button>
               <Link to="/movies">
                 <Button
                   variant="ghost"
