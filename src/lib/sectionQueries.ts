@@ -14,6 +14,7 @@ export interface Section {
   visible: boolean
   placement: "tab" | "internal" | null
   internal_tab: string | null
+  visible_in_tabs: string[]
   content_type: "all" | "movie" | "tv"
   screen_visibility: ScreenVisibility
   created_at: string
@@ -556,16 +557,37 @@ export const getTabSections = async (): Promise<Section[]> => {
 }
 
 export const getInternalSections = async (tabNameOrId: string): Promise<Section[]> => {
-  let query = supabase.from("sections").select("*").eq("visible", true).eq("placement", "internal")
-
-  if (isNaN(Number(tabNameOrId))) {
-    query = query.eq("internal_tab", tabNameOrId)
-  } else {
-    query = query.eq("id", tabNameOrId)
-  }
-
-  const { data, error } = await query.order("position", { ascending: true })
+  const { data, error } = await supabase
+    .from("sections")
+    .select("*")
+    .eq("visible", true)
+    .eq("placement", "internal")
+    .order("position", { ascending: true })
 
   if (error) throw error
-  return (data || []) as Section[]
+  
+  const sections = (data || []) as Section[]
+  
+  return sections.filter((section) => {
+    const visibleInTabs = section.visible_in_tabs || []
+    if (visibleInTabs.length > 0) {
+      return visibleInTabs.includes(tabNameOrId)
+    }
+    return section.internal_tab === tabNameOrId
+  })
+}
+
+export const getContentTypeForTab = (tabId: string): "all" | "movie" | "tv" => {
+  if (tabId === "peliculas") return "movie"
+  if (tabId === "series") return "tv"
+  return "all"
+}
+
+export const getSectionContentForTab = async (section: Section, tabId: string): Promise<Media[]> => {
+  if (section.type === "custom") {
+    return getCustomSectionContent(section.id)
+  } else {
+    const contentType = getContentTypeForTab(tabId)
+    return getCategoryContent(section.category || "", contentType)
+  }
 }

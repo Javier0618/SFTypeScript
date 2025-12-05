@@ -9,6 +9,7 @@ import { MediaCarousel } from "@/components/MediaCarousel";
 import { StreamingPlatforms } from "@/components/StreamingPlatforms";
 import {
   getSectionContent,
+  getSectionContentForTab,
   getAllMovies,
   getAllTVShows,
   getTabSections,
@@ -263,7 +264,7 @@ const Home = () => {
                 )
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} />
+                <DynamicSection key={section.id} section={section} tabId="inicio" />
               ))}
           </div>
         </>
@@ -292,7 +293,7 @@ const Home = () => {
                 )
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} />
+                <DynamicSection key={section.id} section={section} tabId="peliculas" />
               ))}
           </div>
         </>
@@ -321,7 +322,7 @@ const Home = () => {
                 )
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} />
+                <DynamicSection key={section.id} section={section} tabId="series" />
               ))}
           </div>
         </>
@@ -435,7 +436,7 @@ const DynamicSectionsForTab = ({
           shouldShowForScreen((section as any).screen_visibility, screenType)
         )
         .map((section) => (
-          <DynamicSection key={section.id} section={section} />
+          <DynamicSection key={section.id} section={section} tabId={tabId} />
         ))}
     </>
   );
@@ -490,10 +491,10 @@ const CustomTabContent = ({ sectionId }: { sectionId: string }) => {
   );
 };
 
-const DynamicSection = ({ section }: { section: Section }) => {
+const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }) => {
   const { data: content, isLoading } = useQuery({
-    queryKey: ["section-content", section.id],
-    queryFn: () => getSectionContent(section),
+    queryKey: ["section-content", section.id, tabId || "default"],
+    queryFn: () => tabId ? getSectionContentForTab(section, tabId) : getSectionContent(section),
     staleTime: Infinity,
   });
 

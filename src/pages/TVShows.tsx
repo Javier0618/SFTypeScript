@@ -7,7 +7,7 @@ import { MobileNavbar } from "@/components/MobileNavbar";
 import { MediaCarousel } from "@/components/MediaCarousel";
 import { Hero } from "@/components/Hero";
 import { StreamingPlatforms } from "@/components/StreamingPlatforms";
-import { getAllTVShows, getInternalSections, getSectionContent, type Section, type Media } from "@/lib/sectionQueries";
+import { getAllTVShows, getInternalSections, getSectionContentForTab, type Section, type Media } from "@/lib/sectionQueries";
 import { useImageCacheContext } from "@/contexts/ImageCacheContext";
 import { getImageUrl } from "@/lib/tmdb";
 import { useScreenSize, shouldShowForScreen } from "@/hooks/useScreenSize";
@@ -113,17 +113,17 @@ const TVShows = () => {
             )
           )
           .map((section) => (
-            <DynamicSection key={section.id} section={section} />
+            <DynamicSection key={section.id} section={section} tabId="series" />
           ))}
       </div>
     </div>
   );
 };
 
-const DynamicSection = ({ section }: { section: Section }) => {
+const DynamicSection = ({ section, tabId }: { section: Section; tabId: string }) => {
   const { data: content, isLoading } = useQuery({
-    queryKey: ["section-content", section.id],
-    queryFn: () => getSectionContent(section),
+    queryKey: ["section-content", section.id, tabId],
+    queryFn: () => getSectionContentForTab(section, tabId),
     staleTime: Infinity,
   });
 

@@ -71,6 +71,9 @@ Preferred communication style: Simple, everyday language.
 - `episodes` - Individual episode data with video URLs
 - `sections` - Dynamic content sections for homepage organization with screen visibility control
   - `screen_visibility` column: Controls visibility by screen size ('all', 'mobile', 'desktop')
+  - `visible_in_tabs` column (text[]): Multi-select array specifying which main tabs the internal section should appear in
+    - For custom sections: Same content appears in all selected tabs
+    - For category sections: Content is auto-filtered by tab type (Películas = movies only, Series = TV only, Inicio = all)
 - `section_items` - Items within custom sections
 - `streaming_platforms` - Streaming platform information and logos
 - `movie_platforms` & `tv_show_platforms` - Many-to-many relationships for platform assignments

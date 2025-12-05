@@ -10,9 +10,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { getAllSections, createSection, updateSection, deleteSection, type Section, type ScreenVisibility } from "@/lib/sectionQueries"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Monitor, Smartphone, MonitorSmartphone, Pencil } from "lucide-react"
 import { Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react"
 import { CustomSectionEditor } from "./CustomSectionEditor"
+
+const MAIN_TABS = [
+  { id: "inicio", label: "Inicio", description: "Muestra todos los tipos de contenido" },
+  { id: "peliculas", label: "Películas", description: "Solo muestra películas" },
+  { id: "series", label: "Series", description: "Solo muestra series" },
+]
 
 const CATEGORIES = [
   { value: "action", label: "Acción" },
@@ -48,6 +55,7 @@ interface EditSectionForm {
   category: string
   placement: "tab" | "internal"
   internal_tab: string
+  visible_in_tabs: string[]
   screen_visibility: ScreenVisibility
 }
 
@@ -62,6 +70,7 @@ export const SectionManager = () => {
     category: "",
     placement: "internal",
     internal_tab: "inicio",
+    visible_in_tabs: [] as string[],
     screen_visibility: "all",
   })
   const [newSection, setNewSection] = useState({
@@ -72,6 +81,7 @@ export const SectionManager = () => {
     visible: true,
     placement: "internal" as "tab" | "internal",
     internal_tab: "inicio" as string,
+    visible_in_tabs: [] as string[],
     screen_visibility: "all" as ScreenVisibility,
   })
 
@@ -98,6 +108,7 @@ export const SectionManager = () => {
         visible: true,
         placement: "internal",
         internal_tab: "inicio",
+        visible_in_tabs: [],
         screen_visibility: "all",
       })
     },
@@ -141,16 +152,21 @@ export const SectionManager = () => {
       toast.error("La categoría es requerida")
       return
     }
+    if (newSection.placement === "internal" && newSection.visible_in_tabs.length === 0) {
+      toast.error("Debes seleccionar al menos una pestaña principal")
+      return
+    }
 
     const maxPosition = sections?.reduce((max, s) => Math.max(max, s.position), -1) ?? -1
-
-    const contentType = newSection.placement === "internal" ? getContentTypeForTab(newSection.internal_tab) : "all"
 
     createMutation.mutate({
       ...newSection,
       position: maxPosition + 1,
-      internal_tab: newSection.placement === "internal" ? newSection.internal_tab : null,
-      content_type: contentType,
+      internal_tab: newSection.placement === "internal" && newSection.visible_in_tabs.length > 0 
+        ? newSection.visible_in_tabs[0] 
+        : null,
+      visible_in_tabs: newSection.placement === "internal" ? newSection.visible_in_tabs : [],
+      content_type: "all",
       screen_visibility: newSection.screen_visibility,
     })
   }
@@ -170,6 +186,7 @@ export const SectionManager = () => {
       category: section.category || "",
       placement: (section.placement || "internal") as "tab" | "internal",
       internal_tab: section.internal_tab || "inicio",
+      visible_in_tabs: section.visible_in_tabs || [],
       screen_visibility: (section.screen_visibility || "all") as ScreenVisibility,
     })
     setIsEditOpen(true)
@@ -186,8 +203,10 @@ export const SectionManager = () => {
       toast.error("La categoría es requerida")
       return
     }
-
-    const contentType = editForm.placement === "internal" ? getContentTypeForTab(editForm.internal_tab) : "all"
+    if (editForm.placement === "internal" && editForm.visible_in_tabs.length === 0) {
+      toast.error("Debes seleccionar al menos una pestaña principal")
+      return
+    }
 
     updateMutation.mutate({
       id: editingSection.id,
@@ -196,8 +215,11 @@ export const SectionManager = () => {
         type: editForm.type,
         category: editForm.type === "category" ? editForm.category : null,
         placement: editForm.placement,
-        internal_tab: editForm.placement === "internal" ? editForm.internal_tab : null,
-        content_type: contentType,
+        internal_tab: editForm.placement === "internal" && editForm.visible_in_tabs.length > 0 
+          ? editForm.visible_in_tabs[0] 
+          : null,
+        visible_in_tabs: editForm.placement === "internal" ? editForm.visible_in_tabs : [],
+        content_type: "all",
         screen_visibility: editForm.screen_visibility,
       },
     })
@@ -316,31 +338,77 @@ export const SectionManager = () => {
 
               {newSection.placement === "internal" && (
                 <div>
-                  <Label htmlFor="internal_tab">Pestaña de Destino</Label>
-                  <Select
-                    value={newSection.internal_tab}
-                    onValueChange={(value) => setNewSection({ ...newSection, internal_tab: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="inicio">Inicio</SelectItem>
-                      <SelectItem value="peliculas">Películas</SelectItem>
-                      <SelectItem value="series">Series</SelectItem>
-                      {availableTabSections.map((tabSection) => (
-                        <SelectItem key={tabSection.id} value={tabSection.id}>
-                          {tabSection.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {newSection.internal_tab === "peliculas"
-                      ? "Esta sección solo mostrará películas"
-                      : newSection.internal_tab === "series"
-                        ? "Esta sección solo mostrará series"
-                        : "Esta sección mostrará películas y series"}
+                  <Label className="mb-3 block">Mostrar en las siguientes pestañas principales</Label>
+                  <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
+                    {MAIN_TABS.map((tab) => (
+                      <div key={tab.id} className="flex items-start space-x-3">
+                        <Checkbox
+                          id={`new-tab-${tab.id}`}
+                          checked={newSection.visible_in_tabs.includes(tab.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setNewSection({
+                                ...newSection,
+                                visible_in_tabs: [...newSection.visible_in_tabs, tab.id],
+                              })
+                            } else {
+                              setNewSection({
+                                ...newSection,
+                                visible_in_tabs: newSection.visible_in_tabs.filter((t) => t !== tab.id),
+                              })
+                            }
+                          }}
+                        />
+                        <div className="grid gap-0.5 leading-none">
+                          <label
+                            htmlFor={`new-tab-${tab.id}`}
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            {tab.label}
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            {tab.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {availableTabSections.map((tabSection) => (
+                      <div key={tabSection.id} className="flex items-start space-x-3">
+                        <Checkbox
+                          id={`new-tab-${tabSection.id}`}
+                          checked={newSection.visible_in_tabs.includes(tabSection.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setNewSection({
+                                ...newSection,
+                                visible_in_tabs: [...newSection.visible_in_tabs, tabSection.id],
+                              })
+                            } else {
+                              setNewSection({
+                                ...newSection,
+                                visible_in_tabs: newSection.visible_in_tabs.filter((t) => t !== tabSection.id),
+                              })
+                            }
+                          }}
+                        />
+                        <div className="grid gap-0.5 leading-none">
+                          <label
+                            htmlFor={`new-tab-${tabSection.id}`}
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            {tabSection.name}
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            Pestaña personalizada
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {newSection.type === "custom" 
+                      ? "Las secciones personalizadas mostrarán el mismo contenido en todas las pestañas seleccionadas."
+                      : "Las secciones por categoría filtrarán automáticamente el contenido según el tipo de pestaña (películas/series/todo)."}
                   </p>
                 </div>
               )}
@@ -436,14 +504,21 @@ export const SectionManager = () => {
                     {section.placement === "tab"
                       ? "📱 Pestaña principal en móvil"
                       : section.placement === "internal"
-                        ? `📱 Dentro de: ${
-                            section.internal_tab === "inicio"
-                              ? "Inicio"
-                              : section.internal_tab === "peliculas"
-                                ? "Películas"
-                                : section.internal_tab === "series"
-                                  ? "Series"
-                                  : sections?.find((s) => s.id === section.internal_tab)?.name || section.internal_tab
+                        ? `📱 Visible en: ${
+                            (section.visible_in_tabs && section.visible_in_tabs.length > 0)
+                              ? section.visible_in_tabs.map((tabId) => {
+                                  if (tabId === "inicio") return "Inicio"
+                                  if (tabId === "peliculas") return "Películas"
+                                  if (tabId === "series") return "Series"
+                                  return sections?.find((s) => s.id === tabId)?.name || tabId
+                                }).join(", ")
+                              : section.internal_tab === "inicio"
+                                ? "Inicio"
+                                : section.internal_tab === "peliculas"
+                                  ? "Películas"
+                                  : section.internal_tab === "series"
+                                    ? "Series"
+                                    : sections?.find((s) => s.id === section.internal_tab)?.name || section.internal_tab
                           }`
                         : "💻 Solo escritorio"}
                     {section.screen_visibility && section.screen_visibility !== "all" && (
@@ -567,33 +642,79 @@ export const SectionManager = () => {
 
             {editForm.placement === "internal" && (
               <div>
-                <Label htmlFor="edit-internal_tab">Pestaña de Destino</Label>
-                <Select
-                  value={editForm.internal_tab}
-                  onValueChange={(value) => setEditForm({ ...editForm, internal_tab: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inicio">Inicio</SelectItem>
-                    <SelectItem value="peliculas">Películas</SelectItem>
-                    <SelectItem value="series">Series</SelectItem>
-                    {availableTabSections
-                      .filter((s) => s.id !== editingSection?.id)
-                      .map((tabSection) => (
-                        <SelectItem key={tabSection.id} value={tabSection.id}>
-                          {tabSection.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {editForm.internal_tab === "peliculas"
-                    ? "Esta sección solo mostrará películas"
-                    : editForm.internal_tab === "series"
-                      ? "Esta sección solo mostrará series"
-                      : "Esta sección mostrará películas y series"}
+                <Label className="mb-3 block">Mostrar en las siguientes pestañas principales</Label>
+                <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
+                  {MAIN_TABS.map((tab) => (
+                    <div key={tab.id} className="flex items-start space-x-3">
+                      <Checkbox
+                        id={`edit-tab-${tab.id}`}
+                        checked={editForm.visible_in_tabs.includes(tab.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setEditForm({
+                              ...editForm,
+                              visible_in_tabs: [...editForm.visible_in_tabs, tab.id],
+                            })
+                          } else {
+                            setEditForm({
+                              ...editForm,
+                              visible_in_tabs: editForm.visible_in_tabs.filter((t) => t !== tab.id),
+                            })
+                          }
+                        }}
+                      />
+                      <div className="grid gap-0.5 leading-none">
+                        <label
+                          htmlFor={`edit-tab-${tab.id}`}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          {tab.label}
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          {tab.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {availableTabSections
+                    .filter((s) => s.id !== editingSection?.id)
+                    .map((tabSection) => (
+                      <div key={tabSection.id} className="flex items-start space-x-3">
+                        <Checkbox
+                          id={`edit-tab-${tabSection.id}`}
+                          checked={editForm.visible_in_tabs.includes(tabSection.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setEditForm({
+                                ...editForm,
+                                visible_in_tabs: [...editForm.visible_in_tabs, tabSection.id],
+                              })
+                            } else {
+                              setEditForm({
+                                ...editForm,
+                                visible_in_tabs: editForm.visible_in_tabs.filter((t) => t !== tabSection.id),
+                              })
+                            }
+                          }}
+                        />
+                        <div className="grid gap-0.5 leading-none">
+                          <label
+                            htmlFor={`edit-tab-${tabSection.id}`}
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            {tabSection.name}
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            Pestaña personalizada
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {editForm.type === "custom" 
+                    ? "Las secciones personalizadas mostrarán el mismo contenido en todas las pestañas seleccionadas."
+                    : "Las secciones por categoría filtrarán automáticamente el contenido según el tipo de pestaña (películas/series/todo)."}
                 </p>
               </div>
             )}
