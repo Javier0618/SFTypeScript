@@ -1,0 +1,25 @@
+Hola, necesito dos mejoras de rendimiento y UX en la página de inicio (Home) del proyecto (React + TypeScript + Vite):
+
+1. Evitar el “re-render” y recarga visual de los pósters al volver al Home  
+Actualmente, cuando el usuario está en Home → navega a cualquier otra ruta (por ejemplo /movies, /series, /movie/123, etc.) → pulsa “atrás” o hace click en el logo para volver a Home, los pósters del hero y del carrusel/parrilla desaparecen momentáneamente y vuelven a aparecer con el efecto de carga (placeholder → imagen).  
+
+Quiero que una vez que las imágenes de la página de inicio se hayan cargado la primera vez, queden permanentemente en caché y se muestren de forma instantánea y estática al regresar al Home, sin ningún tipo de “flash” o efecto de carga nuevamente.
+
+Solución esperada:
+- Mantener el componente Home montado en el DOM todo el tiempo (o usar una estrategia de keep-alive).
+- Las opciones más recomendadas para Vite + React Router serían:
+  - Envolver las rutas con <BrowserRouter> y usar un layout que nunca se desmonte + ocultar/mostrar el Home con CSS, o
+  - Usar tanstack/react-location o wouter con keep-alive, o
+  - Implementar un simple “cache de vistas” manual con un contexto/stato global que guarde el JSX ya renderizado del Home y lo reutilice.
+- Las imágenes deben seguir usando lazy loading la primera vez, pero una vez cargadas nunca deben volver a mostrar placeholder al volver atrás.
+
+2. Quitar el efecto “push”/rebote del logo y del hero al volver al Home  
+Cuando regreso al inicio (ya sea con el botón atrás del navegador o haciendo click en el logo), todo el hero (fondo + logo_patch + título) hace un pequeño efecto de “entrada” otra vez (scale/opacidad o translate).  
+
+Quiero que el hero completo (fondo, logo_patch y textos) se mantenga totalmente estático y sin ninguna animación de entrada cuando el usuario regresa a la página de inicio. La única vez que debe animarse es en la primera visita o al refrescar la página.
+
+Resumen de lo deseado:
+- Home siempre visible al 100% de forma instantánea al volver (sin recarga visual de imágenes ni animaciones).
+- Experiencia similar a Netflix o Disney+: una vez cargado el inicio, al volver nunca parpadea ni se vuelve a animar.
+
+Gracias de antemano, cualquier duda sobre la implementación me dices y te paso más código si hace falta.
