@@ -11,6 +11,7 @@ import Autoplay from "embla-carousel-autoplay"
 import Fade from "embla-carousel-fade"
 import { cn } from "@/lib/utils"
 import { useImageCacheContext } from "@/contexts/ImageCacheContext"
+import { useHomeVisit } from "@/contexts/HomeVisitContext"
 
 // =========================================================
 // 1. NUEVO COMPONENTE: HeroTitle
@@ -19,20 +20,18 @@ import { useImageCacheContext } from "@/contexts/ImageCacheContext"
 interface HeroTitleProps {
   media: Media
   title: string
+  shouldAnimate: boolean
 }
 
-const HeroTitle = ({ media, title }: HeroTitleProps) => {
+const HeroTitle = ({ media, title, shouldAnimate }: HeroTitleProps) => {
   const isMovie = "title" in media
   const type = isMovie ? "movie" : "tv"
 
-  // Query para buscar los logos específicos
   const { data: logoPath, isLoading } = useQuery({
     queryKey: ["media-logo", type, media.id],
     queryFn: async () => {
-      // NOTA: Asegúrate de que esta variable de entorno sea la correcta en tu proyecto
       const apiKey = import.meta.env.VITE_TMDB_API_KEY
       
-      // Pedimos imágenes filtrando por español e inglés para ahorrar datos
       const response = await fetch(
         `https://api.themoviedb.org/3/${type}/${media.id}/images?api_key=${apiKey}&include_image_language=es,en,null`
       )
@@ -42,38 +41,38 @@ const HeroTitle = ({ media, title }: HeroTitleProps) => {
       const data = await response.json()
       const logos = data.logos || []
 
-      // LÓGICA DE PRIORIDAD:
-      // 1. Buscar Español ('es' cubre español latino y mx en TMDB mayormente)
       const spanishLogo = logos.find((logo: any) => logo.iso_639_1 === "es")
       if (spanishLogo) return spanishLogo.file_path
 
-      // 2. Si no hay español, buscar Inglés ('en')
       const englishLogo = logos.find((logo: any) => logo.iso_639_1 === "en")
       if (englishLogo) return englishLogo.file_path
 
-      // 3. Si no hay ninguno, devolver null para mostrar texto
       return null
     },
-    staleTime: 1000 * 60 * 60 * 24, // Cachear por 24 horas
+    staleTime: 1000 * 60 * 60 * 24,
   })
 
-  // Mientras carga, mostramos un espacio vacío o el texto invisible para mantener altura
-  if (isLoading) {
+  if (isLoading && shouldAnimate) {
     return <div className="h-16 md:h-32 w-1/2 animate-pulse bg-white/10 rounded-lg mb-4" />
   }
 
-  // Si encontramos logo, lo mostramos
+  if (isLoading && !shouldAnimate) {
+    return <div className="h-16 md:h-32 w-1/2 mb-4" />
+  }
+
   if (logoPath) {
     return (
       <img
         src={getImageUrl(logoPath, "original")}
         alt={`${title} logo`}
-        className="max-h-24 md:max-h-48 max-w-[80%] object-contain mb-4 drop-shadow-2xl animate-in fade-in zoom-in duration-500"
+        className={cn(
+          "max-h-24 md:max-h-48 max-w-[80%] object-contain mb-4 drop-shadow-2xl",
+          shouldAnimate && "animate-in fade-in zoom-in duration-500"
+        )}
       />
     )
   }
 
-  // Fallback: Si no hay logo en ES ni EN, mostramos el texto
   return (
     <h1 className="text-3xl md:text-7xl font-bold mb-2 md:mb-4 text-foreground drop-shadow-lg leading-tight">
       {title}
@@ -95,6 +94,18 @@ export const Hero = ({ items, isActive = true, className }: HeroProps) => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 7000 }), Fade()])
   const navigate = useNavigate()
   const { prefetchBackdrops, prefetchPriority, isMobile } = useImageCacheContext()
+  const { hasVisitedHome, markHomeAsVisited } = useHomeVisit()
+
+  useEffect(() => {
+    if (items && items.length > 0 && !hasVisitedHome) {
+      const timer = setTimeout(() => {
+        markHomeAsVisited()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [items, hasVisitedHome, markHomeAsVisited])
+
+  const shouldAnimate = !hasVisitedHome
 
   const backdropUrls = useMemo(() => {
     if (!items || items.length === 0) return []
@@ -180,7 +191,7 @@ export const Hero = ({ items, isActive = true, className }: HeroProps) => {
                   </div>
 
                   {/* 3. AQUÍ USAMOS EL NUEVO COMPONENTE DE LOGO */}
-                  <HeroTitle media={item} title={title} />
+                  <HeroTitle media={item} title={title} shouldAnimate={shouldAnimate} />
 
                   <div className="hidden md:block mb-4 md:mb-6">
                     <p className="text-sm md:text-xl text-foreground/90 line-clamp-3 drop-shadow-md text-shadow">

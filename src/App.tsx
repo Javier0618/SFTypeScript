@@ -15,6 +15,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-ro
 
 import { useContentProtection } from "./hooks/useContentProtection"
 import { ImageCacheProvider } from "./contexts/ImageCacheContext"
+import { HomeVisitProvider } from "./contexts/HomeVisitContext"
 import Index from "./pages/Index"
 import Movies from "./pages/Movies"
 import TVShows from "./pages/TVShows"
@@ -71,7 +72,10 @@ const AndroidBackButton = () => {
 
 const AppContent = () => {
   const { isInitialized, isLoading, progress, currentTask } = useAppInitializer()
+  const location = useLocation()
   useContentProtection()
+
+  const isHome = location.pathname === "/"
 
   useEffect(() => {
     const initAppConfig = async () => {
@@ -115,8 +119,11 @@ const AppContent = () => {
     <>
       <ScrollToTop />
       <AndroidBackButton />
+      <div style={{ display: isHome ? "block" : "none" }}>
+        <Index />
+      </div>
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={null} />
         <Route path="/movies" element={<Movies />} />
         <Route path="/tv" element={<TVShows />} />
         <Route path="/movie/:id" element={<MovieDetail />} />
@@ -139,13 +146,15 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ImageCacheProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </TooltipProvider>
+        <HomeVisitProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </TooltipProvider>
+        </HomeVisitProvider>
       </ImageCacheProvider>
     </QueryClientProvider>
   )
