@@ -337,8 +337,10 @@ const Home = () => {
           className="relative w-full"
           style={{
             transform: `translateX(-${currentTabIndex * 100}%)`,
-            transition: "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
             willChange: "transform",
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            perspective: 1000,
           }}
         >
           {tabs.map((tab, index) => {
@@ -354,6 +356,10 @@ const Home = () => {
                   position: isActive ? "relative" : "absolute",
                   top: 0,
                   left: `${index * 100}%`,
+                  transform: "translateZ(0)",
+                  backfaceVisibility: "hidden",
+                  WebkitBackfaceVisibility: "hidden",
+                  willChange: shouldRender ? "transform" : "auto",
                 }}
               >
                 {shouldRender ? (

@@ -184,6 +184,21 @@ All colors MUST be HSL.
   * {
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Optimización del contenedor de tabs para swipe fluido */
+  .touch-pan-y > div {
+    contain: layout style;
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  /* Cada slide con aceleración GPU */
+  .touch-pan-y > div > div {
+    contain: layout style paint;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
 }
 
 /* Curvas de animación nativas tipo iOS */
