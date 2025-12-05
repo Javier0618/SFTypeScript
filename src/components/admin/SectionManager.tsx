@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { getAllSections, createSection, updateSection, deleteSection, type Section } from "@/lib/sectionQueries"
+import { getAllSections, createSection, updateSection, deleteSection, type Section, type ScreenVisibility } from "@/lib/sectionQueries"
+import { Monitor, Smartphone, MonitorSmartphone } from "lucide-react"
 import { Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react"
 import { CustomSectionEditor } from "./CustomSectionEditor"
 
@@ -53,6 +54,7 @@ export const SectionManager = () => {
     visible: true,
     placement: "internal" as "tab" | "internal",
     internal_tab: "inicio" as string,
+    screen_visibility: "all" as ScreenVisibility,
   })
 
   const { data: sections, isLoading } = useQuery({
@@ -78,6 +80,7 @@ export const SectionManager = () => {
         visible: true,
         placement: "internal",
         internal_tab: "inicio",
+        screen_visibility: "all",
       })
     },
     onError: () => {
@@ -130,6 +133,7 @@ export const SectionManager = () => {
       position: maxPosition + 1,
       internal_tab: newSection.placement === "internal" ? newSection.internal_tab : null,
       content_type: contentType,
+      screen_visibility: newSection.screen_visibility,
     })
   }
 
@@ -289,6 +293,45 @@ export const SectionManager = () => {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="screen_visibility">Visibilidad por Pantalla</Label>
+                <Select
+                  value={newSection.screen_visibility}
+                  onValueChange={(value: ScreenVisibility) => setNewSection({ ...newSection, screen_visibility: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <MonitorSmartphone className="w-4 h-4" />
+                        <span>Todos los dispositivos</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="mobile">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        <span>Solo móvil y tablet</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="desktop">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="w-4 h-4" />
+                        <span>Solo desktop</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {newSection.screen_visibility === "all"
+                    ? "Se mostrará en todos los dispositivos"
+                    : newSection.screen_visibility === "mobile"
+                      ? "Solo visible en móvil y tablet (≤768px)"
+                      : "Solo visible en escritorio (≥769px)"}
+                </p>
+              </div>
+
               <Button onClick={handleCreate} className="w-full" disabled={createMutation.isPending}>
                 Crear Sección
               </Button>
@@ -342,6 +385,21 @@ export const SectionManager = () => {
                                   : sections?.find((s) => s.id === section.internal_tab)?.name || section.internal_tab
                           }`
                         : "💻 Solo escritorio"}
+                    {section.screen_visibility && section.screen_visibility !== "all" && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-muted">
+                        {section.screen_visibility === "mobile" ? (
+                          <>
+                            <Smartphone className="w-3 h-3" />
+                            Solo móvil
+                          </>
+                        ) : (
+                          <>
+                            <Monitor className="w-3 h-3" />
+                            Solo desktop
+                          </>
+                        )}
+                      </span>
+                    )}
                   </p>
                 </div>
 

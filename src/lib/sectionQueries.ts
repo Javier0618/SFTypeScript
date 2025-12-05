@@ -3,6 +3,8 @@ import type { Media } from "./tmdb"
 
 export type { Media }
 
+export type ScreenVisibility = "all" | "mobile" | "desktop"
+
 export interface Section {
   id: string
   name: string
@@ -13,6 +15,7 @@ export interface Section {
   placement: "tab" | "internal" | null
   internal_tab: string | null
   content_type: "all" | "movie" | "tv"
+  screen_visibility: ScreenVisibility
   created_at: string
   updated_at: string
 }

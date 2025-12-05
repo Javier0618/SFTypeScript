@@ -227,30 +227,42 @@ export type Database = {
       sections: {
         Row: {
           category: string | null
+          content_type: string | null
           created_at: string | null
           id: string
+          internal_tab: string | null
           name: string
+          placement: string | null
           position: number
+          screen_visibility: string | null
           type: string
           updated_at: string | null
           visible: boolean
         }
         Insert: {
           category?: string | null
+          content_type?: string | null
           created_at?: string | null
           id?: string
+          internal_tab?: string | null
           name: string
+          placement?: string | null
           position?: number
+          screen_visibility?: string | null
           type: string
           updated_at?: string | null
           visible?: boolean
         }
         Update: {
           category?: string | null
+          content_type?: string | null
           created_at?: string | null
           id?: string
+          internal_tab?: string | null
           name?: string
+          placement?: string | null
           position?: number
+          screen_visibility?: string | null
           type?: string
           updated_at?: string | null
           visible?: boolean

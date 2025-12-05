@@ -85,6 +85,10 @@ export const sections = pgTable('sections', {
   category: text('category'),
   position: integer('position').notNull().default(0),
   visible: boolean('visible').notNull().default(true),
+  placement: text('placement'),
+  internalTab: text('internal_tab'),
+  contentType: text('content_type').default('all'),
+  screenVisibility: text('screen_visibility').default('all'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
