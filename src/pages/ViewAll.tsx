@@ -1,7 +1,7 @@
 "use client"
 
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { useParams } from "react-router-dom"
+import { useParams, useSearchParams } from "react-router-dom"
 import { useEffect, useRef, useCallback } from "react"
 import { Navbar } from "@/components/Navbar"
 import { MobileNavbar } from "@/components/MobileNavbar"
@@ -10,6 +10,7 @@ import {
   getMoviesPaginated, 
   getTVShowsPaginated, 
   getCategoryContentPaginated,
+  getCategoryContentPaginatedForTab,
   PaginatedResult 
 } from "@/lib/sectionQueries"
 import { Loader2 } from "lucide-react"
@@ -43,6 +44,8 @@ const categoryTranslations: Record<string, string> = {
 
 const ViewAll = () => {
   const { type, category } = useParams<{ type: string; category?: string }>()
+  const [searchParams] = useSearchParams()
+  const tabId = searchParams.get("tab")
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -52,13 +55,16 @@ const ViewAll = () => {
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery<PaginatedResult>({
-    queryKey: ["view-all-paginated", type, category],
+    queryKey: ["view-all-paginated", type, category, tabId],
     queryFn: async ({ pageParam = 0 }) => {
       if (type === "movies") {
         return getMoviesPaginated(pageParam as number)
       } else if (type === "series") {
         return getTVShowsPaginated(pageParam as number)
       } else if (type === "category" && category) {
+        if (tabId) {
+          return getCategoryContentPaginatedForTab(category, tabId, pageParam as number)
+        }
         return getCategoryContentPaginated(category, pageParam as number)
       }
       return { items: [], nextPage: null, totalCount: 0 }

@@ -323,6 +323,105 @@ export const getCategoryContentPaginated = async (
   }
 }
 
+export const getCategoryContentPaginatedForTab = async (
+  category: string,
+  tabId: string,
+  page: number = 0,
+): Promise<PaginatedResult> => {
+  const standardTabs = ["inicio", "peliculas", "series"]
+  
+  if (!tabId || standardTabs.includes(tabId)) {
+    const contentType = tabId === "peliculas" ? "movie" : tabId === "series" ? "tv" : "all"
+    return getCategoryContentPaginated(category, page, contentType)
+  }
+
+  const { data: sectionItems, error: sectionError } = await supabase
+    .from("section_items")
+    .select("*")
+    .eq("section_id", tabId)
+    .order("position", { ascending: true })
+
+  if (sectionError) throw sectionError
+  if (!sectionItems || sectionItems.length === 0) {
+    return { items: [], nextPage: null, totalCount: 0 }
+  }
+
+  const movieIds = sectionItems.filter((item) => item.item_type === "movie").map((item) => item.item_id)
+  const tvIds = sectionItems.filter((item) => item.item_type === "tv").map((item) => item.item_id)
+
+  let allItems: Media[] = []
+
+  if (movieIds.length > 0) {
+    const { data: movies } = await supabase
+      .from("movies_imported")
+      .select("*")
+      .in("tmdb_id", movieIds)
+      .ilike("category", `%${category}%`)
+
+    if (movies) {
+      allItems.push(
+        ...movies.map(
+          (movie): Media => ({
+            id: movie.tmdb_id,
+            title: movie.title,
+            poster_path: movie.poster_path,
+            backdrop_path: movie.backdrop_path,
+            overview: movie.overview,
+            release_date: movie.release_date,
+            vote_average: Number(movie.vote_average) || 0,
+            vote_count: 0,
+            genre_ids: [],
+          }),
+        ),
+      )
+    }
+  }
+
+  if (tvIds.length > 0) {
+    const { data: tvShows } = await supabase
+      .from("tv_shows_imported")
+      .select("*")
+      .in("tmdb_id", tvIds)
+      .ilike("category", `%${category}%`)
+
+    if (tvShows) {
+      allItems.push(
+        ...tvShows.map(
+          (show): Media => ({
+            id: show.tmdb_id,
+            name: show.name,
+            poster_path: show.poster_path,
+            backdrop_path: show.backdrop_path,
+            overview: show.overview,
+            first_air_date: show.first_air_date,
+            vote_average: Number(show.vote_average) || 0,
+            vote_count: 0,
+            genre_ids: [],
+          }),
+        ),
+      )
+    }
+  }
+
+  allItems = allItems.sort((a, b) => {
+    const aItem = sectionItems.find((item) => item.item_id === a.id)
+    const bItem = sectionItems.find((item) => item.item_id === b.id)
+    return (aItem?.position || 0) - (bItem?.position || 0)
+  })
+
+  const totalCount = allItems.length
+  const from = page * PAGE_SIZE
+  const to = Math.min(from + PAGE_SIZE, totalCount)
+  const items = allItems.slice(from, to)
+  const hasMore = to < totalCount
+
+  return {
+    items,
+    nextPage: hasMore ? page + 1 : null,
+    totalCount,
+  }
+}
+
 // Get all TV shows (for popular series section)
 export const getAllTVShows = async (): Promise<Media[]> => {
   const { data: tvShows, error } = await supabase

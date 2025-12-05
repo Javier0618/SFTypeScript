@@ -516,9 +516,12 @@ const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }
 
   if (!content || content.length === 0) return null;
 
+  const isCustomTab = tabId && !["inicio", "peliculas", "series"].includes(tabId);
   const viewAllLink =
     section.type === "category"
-      ? `/view-all/category/${(section as any).category}`
+      ? isCustomTab
+        ? `/view-all/category/${(section as any).category}?tab=${tabId}`
+        : `/view-all/category/${(section as any).category}`
       : undefined;
 
   return (
