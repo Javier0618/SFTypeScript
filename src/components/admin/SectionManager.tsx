@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { getAllSections, createSection, updateSection, deleteSection, type Section, type ScreenVisibility } from "@/lib/sectionQueries"
+import { getAllSections, createSection, updateSection, deleteSection, generateSlug, type Section, type ScreenVisibility } from "@/lib/sectionQueries"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Monitor, Smartphone, MonitorSmartphone, Pencil } from "lucide-react"
 import { Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react"
@@ -57,6 +57,7 @@ interface EditSectionForm {
   internal_tab: string
   visible_in_tabs: string[]
   screen_visibility: ScreenVisibility
+  slug: string
 }
 
 export const SectionManager = () => {
@@ -72,6 +73,7 @@ export const SectionManager = () => {
     internal_tab: "inicio",
     visible_in_tabs: [] as string[],
     screen_visibility: "all",
+    slug: "",
   })
   const [newSection, setNewSection] = useState({
     name: "",
@@ -83,6 +85,7 @@ export const SectionManager = () => {
     internal_tab: "inicio" as string,
     visible_in_tabs: [] as string[],
     screen_visibility: "all" as ScreenVisibility,
+    slug: "" as string,
   })
 
   const { data: sections, isLoading } = useQuery({
@@ -110,6 +113,7 @@ export const SectionManager = () => {
         internal_tab: "inicio",
         visible_in_tabs: [],
         screen_visibility: "all",
+        slug: "",
       })
     },
     onError: () => {
@@ -159,6 +163,10 @@ export const SectionManager = () => {
 
     const maxPosition = sections?.reduce((max, s) => Math.max(max, s.position), -1) ?? -1
 
+    const slug = newSection.placement === "tab" 
+      ? (newSection.slug || generateSlug(newSection.name))
+      : null
+
     createMutation.mutate({
       ...newSection,
       position: maxPosition + 1,
@@ -168,6 +176,7 @@ export const SectionManager = () => {
       visible_in_tabs: newSection.placement === "internal" ? newSection.visible_in_tabs : [],
       content_type: "all",
       screen_visibility: newSection.screen_visibility,
+      slug,
     })
   }
 
@@ -188,6 +197,7 @@ export const SectionManager = () => {
       internal_tab: section.internal_tab || "inicio",
       visible_in_tabs: section.visible_in_tabs || [],
       screen_visibility: (section.screen_visibility || "all") as ScreenVisibility,
+      slug: section.slug || "",
     })
     setIsEditOpen(true)
   }
@@ -208,6 +218,10 @@ export const SectionManager = () => {
       return
     }
 
+    const slug = editForm.placement === "tab" 
+      ? (editForm.slug || generateSlug(editForm.name))
+      : null
+
     updateMutation.mutate({
       id: editingSection.id,
       updates: {
@@ -221,6 +235,7 @@ export const SectionManager = () => {
         visible_in_tabs: editForm.placement === "internal" ? editForm.visible_in_tabs : [],
         content_type: "all",
         screen_visibility: editForm.screen_visibility,
+        slug,
       },
     })
     setIsEditOpen(false)
@@ -335,6 +350,21 @@ export const SectionManager = () => {
                     : "Se muestra como carrusel dentro de una pestaña existente"}
                 </p>
               </div>
+
+              {newSection.placement === "tab" && (
+                <div>
+                  <Label htmlFor="new-slug">URL amigable (slug)</Label>
+                  <Input
+                    id="new-slug"
+                    value={newSection.slug}
+                    onChange={(e) => setNewSection({ ...newSection, slug: e.target.value })}
+                    placeholder={`Ej: ${generateSlug(newSection.name || "mi-seccion")}`}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    La URL será: /tab/{newSection.slug || generateSlug(newSection.name || "mi-seccion")}
+                  </p>
+                </div>
+              )}
 
               {newSection.placement === "internal" && (
                 <div>
@@ -639,6 +669,21 @@ export const SectionManager = () => {
                   : "Se muestra como carrusel dentro de una pestaña existente"}
               </p>
             </div>
+
+            {editForm.placement === "tab" && (
+              <div>
+                <Label htmlFor="edit-slug">URL amigable (slug)</Label>
+                <Input
+                  id="edit-slug"
+                  value={editForm.slug}
+                  onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+                  placeholder={`Ej: ${generateSlug(editForm.name || "mi-seccion")}`}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  La URL será: /tab/{editForm.slug || generateSlug(editForm.name || "mi-seccion")}
+                </p>
+              </div>
+            )}
 
             {editForm.placement === "internal" && (
               <div>

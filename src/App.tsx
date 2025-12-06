@@ -31,6 +31,7 @@ import ViewAll from "./pages/ViewAll"
 import NotFound from "./pages/NotFound"
 import PlatformContent from "./pages/PlatformContent"
 import ScrollToTop from "./components/ScrollToTop"
+import TabPage from "./pages/TabPage"
 import { NativeLoadingScreen } from "./components/NativeLoadingScreen"
 import { useAppInitializer } from "./hooks/useAppInitializer"
 
@@ -124,6 +125,9 @@ const AppContent = () => {
       </div>
       <Routes>
         <Route path="/" element={null} />
+        <Route path="/peliculas" element={<TabPage tabId="peliculas" />} />
+        <Route path="/series" element={<TabPage tabId="series" />} />
+        <Route path="/tab/:slug" element={<TabPage />} />
         <Route path="/movies" element={<Movies />} />
         <Route path="/tv" element={<TVShows />} />
         <Route path="/movie/:id" element={<MovieDetail />} />

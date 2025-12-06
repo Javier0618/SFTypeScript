@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { HomeIcon, Film, Tv } from "lucide-react";
 import { Hero } from "@/components/Hero";
 import { MediaCarousel } from "@/components/MediaCarousel";
@@ -14,6 +14,7 @@ import {
   getAllTVShows,
   getTabSections,
   getInternalSections,
+  getSectionByIdOrSlug,
   type Section,
   type Media,
 } from "@/lib/sectionQueries";
@@ -56,25 +57,51 @@ const seededShuffle = <T,>(array: T[], seed: string): T[] => {
   return result;
 };
 
-const Home = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+interface TabPageProps {
+  tabId?: string;
+}
+
+const TabPage = ({ tabId: propTabId }: TabPageProps) => {
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const tabFromUrl = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<string>(tabFromUrl || "inicio");
   const queryClient = useQueryClient();
   const { screenType } = useScreenSize();
-
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const heroItemsCache = useRef<Record<string, any[]>>({});
-  const sessionKey = useMemo(() => getSessionKey(), []);
+  
+  const identifier = propTabId || slug;
 
   const { data: tabSections } = useQuery({
     queryKey: ["tab-sections"],
     queryFn: getTabSections,
     staleTime: Infinity,
-    gcTime: Infinity,
   });
+
+  const { data: customSection } = useQuery({
+    queryKey: ["section-by-slug", identifier],
+    queryFn: () => getSectionByIdOrSlug(identifier!),
+    enabled: !!identifier && !["peliculas", "series", "inicio"].includes(identifier),
+    staleTime: Infinity,
+  });
+
+  const resolvedTabId = useMemo(() => {
+    if (identifier === "peliculas" || identifier === "series") {
+      return identifier;
+    }
+    if (customSection) {
+      return customSection.id;
+    }
+    const found = tabSections?.find((s) => s.slug === identifier || s.id === identifier);
+    return found?.id || identifier || "inicio";
+  }, [identifier, customSection, tabSections]);
+
+  const [activeTab, setActiveTab] = useState<string>(resolvedTabId);
+
+  useEffect(() => {
+    setActiveTab(resolvedTabId);
+  }, [resolvedTabId]);
+
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const heroItemsCache = useRef<Record<string, any[]>>({});
+  const sessionKey = useMemo(() => getSessionKey(), []);
 
   const { data: allMovies } = useQuery({
     queryKey: ["all-movies"],
@@ -139,19 +166,6 @@ const Home = () => {
     const url = getTabUrl(tabId, tabSections);
     navigate(url, { replace: true });
   };
-
-  useEffect(() => {
-    const targetTab = tabFromUrl || "inicio";
-    if (targetTab !== activeTab) {
-      setActiveTab(targetTab);
-    }
-  }, [tabFromUrl, activeTab]);
-
-  const { data: inicioInternalSections } = useQuery({
-    queryKey: ["internal-sections", "inicio"],
-    queryFn: () => getInternalSections("inicio"),
-    staleTime: Infinity,
-  });
 
   const { data: peliculasInternalSections } = useQuery({
     queryKey: ["internal-sections", "peliculas"],
@@ -246,41 +260,6 @@ const Home = () => {
 
   const renderTabContent = (tabId: string, isActive: boolean) => {
     const heroItems = getHeroItems(tabId);
-
-    if (tabId === "inicio") {
-      return (
-        <>
-          <Hero items={heroItems} isActive={isActive} />
-          <div className="mt-8">
-            <StreamingPlatforms />
-          </div>
-          <div className="container mx-auto px-2 py-1">
-            <MediaCarousel
-              title="Películas Populares"
-              items={allMovies?.slice(0, 20) || []}
-              type="movie"
-              viewAllLink="/view-all/movies"
-            />
-            <MediaCarousel
-              title="Series Populares"
-              items={allSeries?.slice(0, 20) || []}
-              type="tv"
-              viewAllLink="/view-all/series"
-            />
-            {inicioInternalSections
-              ?.filter((section) =>
-                shouldShowForScreen(
-                  (section as any).screen_visibility,
-                  screenType
-                )
-              )
-              .map((section) => (
-                <DynamicSection key={section.id} section={section} tabId="inicio" />
-              ))}
-          </div>
-        </>
-      );
-    }
 
     if (tabId === "peliculas") {
       return (
@@ -545,4 +524,4 @@ const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }
   );
 };
 
-export default Home;
+export default TabPage;

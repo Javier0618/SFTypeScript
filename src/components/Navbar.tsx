@@ -75,38 +75,43 @@ export const Navbar = () => {
               >
                 Inicio
               </Button>
-              <Link to="/movies">
+              <Link to="/peliculas">
                 <Button
                   variant="ghost"
-                  className={location.pathname === "/movies" ? "text-primary" : "text-muted-foreground"}
+                  className={location.pathname === "/peliculas" ? "text-primary" : "text-muted-foreground"}
                 >
                   <Film className="w-4 h-4 mr-2" />
                   Películas
                 </Button>
               </Link>
-              <Link to="/tv">
+              <Link to="/series">
                 <Button
                   variant="ghost"
-                  className={location.pathname === "/tv" ? "text-primary" : "text-muted-foreground"}
+                  className={location.pathname === "/series" ? "text-primary" : "text-muted-foreground"}
                 >
                   <Tv className="w-4 h-4 mr-2" />
                   Series
                 </Button>
               </Link>
-              {desktopTabSections.map((section) => (
-                <Link key={section.id} to={`/?tab=${section.id}`}>
-                  <Button
-                    variant="ghost"
-                    className={
-                      location.pathname === "/" && location.search.includes(`tab=${section.id}`)
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    }
-                  >
-                    {section.name}
-                  </Button>
-                </Link>
-              ))}
+              {desktopTabSections.map((section) => {
+                const tabUrl = section.slug ? `/tab/${section.slug}` : `/tab/${section.id}`;
+                return (
+                  <Link key={section.id} to={tabUrl}>
+                    <Button
+                      variant="ghost"
+                      className={
+                        location.pathname === tabUrl ||
+                        location.pathname === `/tab/${section.id}` ||
+                        location.pathname === `/tab/${section.slug}`
+                          ? "text-primary"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      {section.name}
+                    </Button>
+                  </Link>
+                );
+              })}
             </div>
           </div>
           <form onSubmit={handleSearch} className="flex items-center gap-2">

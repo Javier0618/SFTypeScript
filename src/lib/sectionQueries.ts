@@ -17,8 +17,50 @@ export interface Section {
   visible_in_tabs: string[]
   content_type: "all" | "movie" | "tv"
   screen_visibility: ScreenVisibility
+  slug: string | null
   created_at: string
   updated_at: string
+}
+
+export const generateSlug = (name: string): string => {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+export const getSectionBySlug = async (slug: string): Promise<Section | null> => {
+  const { data, error } = await supabase
+    .from("sections")
+    .select("*")
+    .eq("slug", slug)
+    .eq("visible", true)
+    .single()
+
+  if (error) return null
+  return data as Section
+}
+
+export const getSectionByIdOrSlug = async (identifier: string): Promise<Section | null> => {
+  const { data: bySlug } = await supabase
+    .from("sections")
+    .select("*")
+    .eq("slug", identifier)
+    .eq("visible", true)
+    .single()
+
+  if (bySlug) return bySlug as Section
+
+  const { data: byId } = await supabase
+    .from("sections")
+    .select("*")
+    .eq("id", identifier)
+    .eq("visible", true)
+    .single()
+
+  return byId as Section | null
 }
 
 export interface SectionItem {
