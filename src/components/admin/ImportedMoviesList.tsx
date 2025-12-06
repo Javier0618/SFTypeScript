@@ -80,18 +80,26 @@ export const ImportedMoviesList = () => {
   };
 
   const handleEdit = async () => {
-    if (!editingMovie || !videoUrl.trim()) return;
+    if (!editingMovie) return;
 
     try {
-      const { error } = await supabase
-        .from("movies_imported")
-        .update({
-          video_url: videoUrl,
-          category: category || null,
-        })
-        .eq("tmdb_id", editingMovie.id);
+      const updateData: { video_url?: string; category?: string | null } = {};
+      
+      if (videoUrl.trim()) {
+        updateData.video_url = videoUrl;
+      }
+      if (category !== undefined) {
+        updateData.category = category || null;
+      }
 
-      if (error) throw error;
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from("movies_imported")
+          .update(updateData)
+          .eq("tmdb_id", editingMovie.id);
+
+        if (error) throw error;
+      }
 
       await setMoviePlatforms(editingMovie.id, selectedPlatforms);
 
@@ -223,7 +231,6 @@ export const ImportedMoviesList = () => {
             />
             <Button
               onClick={handleEdit}
-              disabled={!videoUrl.trim()}
               className="w-full"
             >
               Actualizar Película
