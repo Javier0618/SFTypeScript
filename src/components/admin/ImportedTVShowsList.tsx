@@ -18,7 +18,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PlatformSelector } from "./PlatformSelector";
+import { TabSelector } from "./TabSelector";
 import { getTVShowPlatforms, setTVShowPlatforms } from "@/lib/platformQueries";
+import { getItemTabs, setItemTabs } from "@/lib/sectionQueries";
 
 interface Season {
   id: string;
@@ -48,6 +50,7 @@ export const ImportedTVShowsList = () => {
   >({});
   const [category, setCategory] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
   const { toast } = useToast();
 
   const loadShows = useCallback(async () => {
@@ -184,6 +187,8 @@ export const ImportedTVShowsList = () => {
 
       await setTVShowPlatforms(editingShow.id, selectedPlatforms);
 
+      await setItemTabs(editingShow.id, "tv", selectedTabs);
+
       for (const [seasonId, seasonEpisodes] of Object.entries(episodes)) {
         for (const episode of seasonEpisodes) {
           const videoUrl = editingEpisodes[episode.id || ""]?.trim();
@@ -214,6 +219,7 @@ export const ImportedTVShowsList = () => {
       setEditingShow(null);
       setCategory("");
       setSelectedPlatforms([]);
+      setSelectedTabs([]);
       await loadShows();
     } catch (error) {
       console.error("Error updating episodes:", error);
@@ -232,9 +238,12 @@ export const ImportedTVShowsList = () => {
     try {
       const platforms = await getTVShowPlatforms(show.id);
       setSelectedPlatforms(platforms);
+      const tabs = await getItemTabs(show.id, "tv");
+      setSelectedTabs(tabs);
     } catch (error) {
-      console.error("Error loading show platforms:", error);
+      console.error("Error loading show data:", error);
       setSelectedPlatforms([]);
+      setSelectedTabs([]);
     }
   };
 
@@ -310,6 +319,10 @@ export const ImportedTVShowsList = () => {
             <PlatformSelector
               selectedPlatforms={selectedPlatforms}
               onPlatformsChange={setSelectedPlatforms}
+            />
+            <TabSelector
+              selectedTabs={selectedTabs}
+              onTabsChange={setSelectedTabs}
             />
             <Tabs defaultValue={seasons[0]?.id}>
               <TabsList

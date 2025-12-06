@@ -820,3 +820,44 @@ export const getSectionContentForTab = async (section: Section, tabId: string): 
     return getCategoryContent(section.category || "", contentType)
   }
 }
+
+export const getItemTabs = async (itemId: number, itemType: "movie" | "tv"): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from("section_items")
+    .select("section_id")
+    .eq("item_id", itemId)
+    .eq("item_type", itemType)
+
+  if (error) throw error
+
+  const tabSections = await getTabSections()
+  const tabIds = tabSections.map((s) => s.id)
+
+  return (data || [])
+    .map((item) => item.section_id)
+    .filter((sectionId) => tabIds.includes(sectionId))
+}
+
+export const setItemTabs = async (
+  itemId: number,
+  itemType: "movie" | "tv",
+  tabIds: string[]
+): Promise<void> => {
+  const currentTabs = await getItemTabs(itemId, itemType)
+
+  const tabsToAdd = tabIds.filter((id) => !currentTabs.includes(id))
+  const tabsToRemove = currentTabs.filter((id) => !tabIds.includes(id))
+
+  for (const tabId of tabsToRemove) {
+    await supabase
+      .from("section_items")
+      .delete()
+      .eq("section_id", tabId)
+      .eq("item_id", itemId)
+      .eq("item_type", itemType)
+  }
+
+  for (const tabId of tabsToAdd) {
+    await addItemToSection(tabId, itemId, itemType, 0)
+  }
+}

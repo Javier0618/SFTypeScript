@@ -16,7 +16,9 @@ import { Label } from "@/components/ui/label";
 import { Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PlatformSelector } from "./PlatformSelector";
+import { TabSelector } from "./TabSelector";
 import { getMoviePlatforms, setMoviePlatforms } from "@/lib/platformQueries";
+import { getItemTabs, setItemTabs } from "@/lib/sectionQueries";
 
 export const ImportedMoviesList = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -25,6 +27,7 @@ export const ImportedMoviesList = () => {
   const [videoUrl, setVideoUrl] = useState("");
   const [category, setCategory] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
   const { toast } = useToast();
 
   const loadMovies = useCallback(async () => {
@@ -92,6 +95,8 @@ export const ImportedMoviesList = () => {
 
       await setMoviePlatforms(editingMovie.id, selectedPlatforms);
 
+      await setItemTabs(editingMovie.id, "movie", selectedTabs);
+
       toast({
         title: "Película actualizada",
         description: "La película se actualizó correctamente",
@@ -101,6 +106,7 @@ export const ImportedMoviesList = () => {
       setVideoUrl("");
       setCategory("");
       setSelectedPlatforms([]);
+      setSelectedTabs([]);
       await loadMovies();
     } catch (error) {
       console.error("Error updating movie:", error);
@@ -119,9 +125,12 @@ export const ImportedMoviesList = () => {
     try {
       const platforms = await getMoviePlatforms(movie.id);
       setSelectedPlatforms(platforms);
+      const tabs = await getItemTabs(movie.id, "movie");
+      setSelectedTabs(tabs);
     } catch (error) {
-      console.error("Error loading movie platforms:", error);
+      console.error("Error loading movie data:", error);
       setSelectedPlatforms([]);
+      setSelectedTabs([]);
     }
   };
 
@@ -207,6 +216,10 @@ export const ImportedMoviesList = () => {
             <PlatformSelector
               selectedPlatforms={selectedPlatforms}
               onPlatformsChange={setSelectedPlatforms}
+            />
+            <TabSelector
+              selectedTabs={selectedTabs}
+              onTabsChange={setSelectedTabs}
             />
             <Button
               onClick={handleEdit}
