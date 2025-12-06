@@ -27,6 +27,8 @@ import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { useImageCacheContext } from "@/contexts/ImageCacheContext";
 import { getImageUrl } from "@/lib/tmdb";
 import { useScreenSize, shouldShowForScreen } from "@/hooks/useScreenSize";
+import { BackdropCarousel } from "@/components/BackdropCarousel";
+import { CustomHTMLSection } from "@/components/CustomHTMLSection";
 
 const getSessionKey = () => {
   if (typeof window !== "undefined") {
@@ -503,6 +505,14 @@ const CustomTabContent = ({ sectionId }: { sectionId: string }) => {
 };
 
 const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }) => {
+  if (section.type === "backdrop_carousel") {
+    return <BackdropCarousel section={section} tabId={tabId} />;
+  }
+
+  if (section.type === "custom_html") {
+    return <CustomHTMLSection section={section} />;
+  }
+
   const { data: content, isLoading } = useQuery({
     queryKey: ["section-content", section.id, tabId || "default"],
     queryFn: () => tabId ? getSectionContentForTab(section, tabId) : getSectionContent(section),

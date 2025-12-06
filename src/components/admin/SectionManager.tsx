@@ -626,7 +626,7 @@ export const SectionManager = () => {
                     <Pencil className="w-4 h-4" />
                   </Button>
 
-                  {section.type === "custom" && <CustomSectionEditor section={section} />}
+                  {(section.type === "custom" || section.type === "backdrop_carousel") && <CustomSectionEditor section={section} />}
 
                   <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(section.id)}>
                     <Trash2 className="w-4 h-4 text-destructive" />
