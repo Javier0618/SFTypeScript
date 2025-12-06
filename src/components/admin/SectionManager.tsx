@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { getAllSections, createSection, updateSection, deleteSection, generateSlug, type Section, type ScreenVisibility } from "@/lib/sectionQueries"
+import { getAllSections, createSection, updateSection, deleteSection, generateSlug, type Section, type ScreenVisibility, type SectionType } from "@/lib/sectionQueries"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Monitor, Smartphone, MonitorSmartphone, Pencil } from "lucide-react"
 import { Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react"
@@ -51,13 +51,14 @@ const getContentTypeForTab = (internalTab: string): "all" | "movie" | "tv" => {
 
 interface EditSectionForm {
   name: string
-  type: "category" | "custom"
+  type: SectionType
   category: string
   placement: "tab" | "internal"
   internal_tab: string
   visible_in_tabs: string[]
   screen_visibility: ScreenVisibility
   slug: string
+  html_content: string
 }
 
 export const SectionManager = () => {
@@ -74,10 +75,11 @@ export const SectionManager = () => {
     visible_in_tabs: [] as string[],
     screen_visibility: "all",
     slug: "",
+    html_content: "",
   })
   const [newSection, setNewSection] = useState({
     name: "",
-    type: "category" as "category" | "custom",
+    type: "category" as SectionType,
     category: "",
     position: 0,
     visible: true,
@@ -86,6 +88,7 @@ export const SectionManager = () => {
     visible_in_tabs: [] as string[],
     screen_visibility: "all" as ScreenVisibility,
     slug: "" as string,
+    html_content: "" as string,
   })
 
   const { data: sections, isLoading } = useQuery({
@@ -114,6 +117,7 @@ export const SectionManager = () => {
         visible_in_tabs: [],
         screen_visibility: "all",
         slug: "",
+        html_content: "",
       })
     },
     onError: () => {
@@ -156,6 +160,10 @@ export const SectionManager = () => {
       toast.error("La categoría es requerida")
       return
     }
+    if (newSection.type === "custom_html" && !newSection.html_content) {
+      toast.error("El contenido HTML es requerido")
+      return
+    }
     if (newSection.placement === "internal" && newSection.visible_in_tabs.length === 0) {
       toast.error("Debes seleccionar al menos una pestaña principal")
       return
@@ -177,6 +185,7 @@ export const SectionManager = () => {
       content_type: "all",
       screen_visibility: newSection.screen_visibility,
       slug,
+      html_content: newSection.type === "custom_html" ? newSection.html_content : null,
     })
   }
 
@@ -191,13 +200,14 @@ export const SectionManager = () => {
     setEditingSection(section)
     setEditForm({
       name: section.name,
-      type: section.type as "category" | "custom",
+      type: section.type as SectionType,
       category: section.category || "",
       placement: (section.placement || "internal") as "tab" | "internal",
       internal_tab: section.internal_tab || "inicio",
       visible_in_tabs: section.visible_in_tabs || [],
       screen_visibility: (section.screen_visibility || "all") as ScreenVisibility,
       slug: section.slug || "",
+      html_content: section.html_content || "",
     })
     setIsEditOpen(true)
   }
@@ -211,6 +221,10 @@ export const SectionManager = () => {
     }
     if (editForm.type === "category" && !editForm.category) {
       toast.error("La categoría es requerida")
+      return
+    }
+    if (editForm.type === "custom_html" && !editForm.html_content) {
+      toast.error("El contenido HTML es requerido")
       return
     }
     if (editForm.placement === "internal" && editForm.visible_in_tabs.length === 0) {
@@ -236,6 +250,7 @@ export const SectionManager = () => {
         content_type: "all",
         screen_visibility: editForm.screen_visibility,
         slug,
+        html_content: editForm.type === "custom_html" ? editForm.html_content : null,
       },
     })
     setIsEditOpen(false)
@@ -297,7 +312,7 @@ export const SectionManager = () => {
                 <Label htmlFor="type">Tipo de Sección</Label>
                 <Select
                   value={newSection.type}
-                  onValueChange={(value: "category" | "custom") => setNewSection({ ...newSection, type: value })}
+                  onValueChange={(value: SectionType) => setNewSection({ ...newSection, type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -305,8 +320,16 @@ export const SectionManager = () => {
                   <SelectContent>
                     <SelectItem value="category">Por Categoría</SelectItem>
                     <SelectItem value="custom">Personalizada</SelectItem>
+                    <SelectItem value="backdrop_carousel">Carrusel de Backdrops</SelectItem>
+                    <SelectItem value="custom_html">Banner HTML Personalizado</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {newSection.type === "category" && "Muestra contenido filtrado por categoría"}
+                  {newSection.type === "custom" && "Selecciona manualmente películas y series"}
+                  {newSection.type === "backdrop_carousel" && "Carrusel grande con imágenes de fondo (estilo Netflix)"}
+                  {newSection.type === "custom_html" && "Inserta código HTML/anuncios personalizados"}
+                </p>
               </div>
 
               {newSection.type === "category" && (
@@ -327,6 +350,31 @@ export const SectionManager = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {newSection.type === "custom_html" && (
+                <div>
+                  <Label htmlFor="html_content">Código HTML</Label>
+                  <textarea
+                    id="html_content"
+                    value={newSection.html_content}
+                    onChange={(e) => setNewSection({ ...newSection, html_content: e.target.value })}
+                    placeholder="<div>Tu código HTML aquí...</div>"
+                    className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pega aquí código de anuncios (AdSense, Adsterra, etc.) o cualquier HTML/CSS/JS personalizado.
+                  </p>
+                </div>
+              )}
+
+              {(newSection.type === "custom" || newSection.type === "backdrop_carousel") && (
+                <div className="p-4 bg-muted/30 rounded-lg border">
+                  <p className="text-sm text-muted-foreground">
+                    {newSection.type === "custom" && "Después de crear la sección, podrás agregar películas y series desde el gestor de contenido."}
+                    {newSection.type === "backdrop_carousel" && "Después de crear la sección, podrás seleccionar las películas y series que aparecerán en el carrusel de backdrops."}
+                  </p>
                 </div>
               )}
 
@@ -616,7 +664,7 @@ export const SectionManager = () => {
               <Label htmlFor="edit-type">Tipo de Sección</Label>
               <Select
                 value={editForm.type}
-                onValueChange={(value: "category" | "custom") => setEditForm({ ...editForm, type: value })}
+                onValueChange={(value: SectionType) => setEditForm({ ...editForm, type: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -624,8 +672,16 @@ export const SectionManager = () => {
                 <SelectContent>
                   <SelectItem value="category">Por Categoría</SelectItem>
                   <SelectItem value="custom">Personalizada</SelectItem>
+                  <SelectItem value="backdrop_carousel">Carrusel de Backdrops</SelectItem>
+                  <SelectItem value="custom_html">Banner HTML Personalizado</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {editForm.type === "category" && "Muestra contenido filtrado por categoría"}
+                {editForm.type === "custom" && "Selecciona manualmente películas y series"}
+                {editForm.type === "backdrop_carousel" && "Carrusel grande con imágenes de fondo (estilo Netflix)"}
+                {editForm.type === "custom_html" && "Inserta código HTML/anuncios personalizados"}
+              </p>
             </div>
 
             {editForm.type === "category" && (
@@ -646,6 +702,22 @@ export const SectionManager = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {editForm.type === "custom_html" && (
+              <div>
+                <Label htmlFor="edit-html_content">Código HTML</Label>
+                <textarea
+                  id="edit-html_content"
+                  value={editForm.html_content}
+                  onChange={(e) => setEditForm({ ...editForm, html_content: e.target.value })}
+                  placeholder="<div>Tu código HTML aquí...</div>"
+                  className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pega aquí código de anuncios (AdSense, Adsterra, etc.) o cualquier HTML/CSS/JS personalizado.
+                </p>
               </div>
             )}
 

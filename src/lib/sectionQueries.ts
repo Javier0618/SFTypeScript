@@ -5,10 +5,12 @@ export type { Media }
 
 export type ScreenVisibility = "all" | "mobile" | "desktop"
 
+export type SectionType = "category" | "custom" | "backdrop_carousel" | "custom_html"
+
 export interface Section {
   id: string
   name: string
-  type: "category" | "custom"
+  type: SectionType
   category: string | null
   position: number
   visible: boolean
@@ -18,6 +20,7 @@ export interface Section {
   content_type: "all" | "movie" | "tv"
   screen_visibility: ScreenVisibility
   slug: string | null
+  html_content?: string | null
   created_at: string
   updated_at: string
 }
