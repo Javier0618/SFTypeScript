@@ -1,94 +1,110 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect, useRef } from "react"
-import { type TVShow, getImageUrl, getTVShowDetails, getTVShowGenres, getTVSeasonDetails, type Genre } from "@/lib/tmdb"
-import { getLogo } from "@/lib/tmdb"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { supabase } from "@/integrations/supabase/client"
-import { useToast } from "@/hooks/use-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { z } from "zod"
-import { Upload } from "lucide-react"
-import { PlatformSelector } from "./PlatformSelector"
-import { setTVShowPlatforms } from "@/lib/platformQueries"
+import { useState, useEffect, useRef } from "react";
+import {
+  type TVShow,
+  getImageUrl,
+  getTVShowDetails,
+  getTVShowGenres,
+  getTVSeasonDetails,
+  type Genre,
+} from "@/lib/tmdb";
+import { getLogo } from "@/lib/tmdb";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { z } from "zod";
+import { Upload } from "lucide-react";
+import { PlatformSelector } from "./PlatformSelector";
+import { setTVShowPlatforms } from "@/lib/platformQueries";
 
 interface TVSearchResultsProps {
-  results: TVShow[]
+  results: TVShow[];
 }
 
 interface SeasonDetails {
-  season_number: number
-  episode_count: number
+  season_number: number;
+  episode_count: number;
   episodes: Array<{
-    episode_number: number
-    name: string
-  }>
+    episode_number: number;
+    name: string;
+  }>;
 }
 
-import type { TVShowDetails } from "@/lib/tmdb"
+import type { TVShowDetails } from "@/lib/tmdb";
 
 export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
-  console.log("TVSearchResults results:", results)
-  const [selectedShow, setSelectedShow] = useState<TVShow | null>(null)
-  const [showDetails, setShowDetails] = useState<TVShowDetails | null>(null)
-  const [seasonDetails, setSeasonDetails] = useState<{ [season: number]: SeasonDetails }>({})
-  const [selectedSeason, setSelectedSeason] = useState(1)
-  const [episodeUrls, setEpisodeUrls] = useState<{ [season: number]: { [episode: number]: string } }>({})
-  const [loading, setLoading] = useState(false)
-  const [tvShowGenres, setTvShowGenres] = useState<Genre[]>([])
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
-  const { toast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  console.log("TVSearchResults results:", results);
+  const [selectedShow, setSelectedShow] = useState<TVShow | null>(null);
+  const [showDetails, setShowDetails] = useState<TVShowDetails | null>(null);
+  const [seasonDetails, setSeasonDetails] = useState<{
+    [season: number]: SeasonDetails;
+  }>({});
+  const [selectedSeason, setSelectedSeason] = useState(1);
+  const [episodeUrls, setEpisodeUrls] = useState<{
+    [season: number]: { [episode: number]: string };
+  }>({});
+  const [loading, setLoading] = useState(false);
+  const [tvShowGenres, setTvShowGenres] = useState<Genre[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchGenres = async () => {
-      const genres = await getTVShowGenres("en-US")
-      setTvShowGenres(genres)
-    }
-    fetchGenres()
-  }, [])
+      const genres = await getTVShowGenres("en-US");
+      setTvShowGenres(genres);
+    };
+    fetchGenres();
+  }, []);
 
   const handleShowClick = async (show: TVShow) => {
-    setSelectedShow(show)
-    const details = await getTVShowDetails(show.id)
-    setShowDetails(details)
-    setSelectedSeason(1)
-    setEpisodeUrls({})
+    setSelectedShow(show);
+    const details = await getTVShowDetails(show.id);
+    setShowDetails(details);
+    setSelectedSeason(1);
+    setEpisodeUrls({});
 
-    const seasonsData: { [season: number]: SeasonDetails } = {}
+    const seasonsData: { [season: number]: SeasonDetails } = {};
     for (let i = 1; i <= details.number_of_seasons; i++) {
-      const seasonData = await getTVSeasonDetails(show.id, i)
+      const seasonData = await getTVSeasonDetails(show.id, i);
       seasonsData[i] = {
         season_number: i,
         episode_count: seasonData.episodes?.length || 0,
         episodes: seasonData.episodes || [],
-      }
+      };
     }
-    setSeasonDetails(seasonsData)
-  }
+    setSeasonDetails(seasonsData);
+  };
 
   const handleImport = async () => {
-    if (!selectedShow || !showDetails) return
+    if (!selectedShow || !showDetails) return;
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Usuario no autenticado")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuario no autenticado");
 
       const genreNames = selectedShow.genre_ids
         .map((id) => tvShowGenres.find((genre) => genre.id === id)?.name)
-        .filter(Boolean)
+        .filter(Boolean);
 
-      const logoUrl = await getLogo("tv", selectedShow.id)
+      const logoUrl = await getLogo("tv", selectedShow.id);
 
       const { data: tvShowData, error: tvError } = await supabase
         .from("tv_shows_imported")
@@ -108,17 +124,17 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
           imported_by: user.id,
         })
         .select()
-        .single()
+        .single();
 
-      if (tvError) throw tvError
+      if (tvError) throw tvError;
 
       if (selectedPlatforms.length > 0) {
-        await setTVShowPlatforms(tvShowData.id, selectedPlatforms)
+        await setTVShowPlatforms(tvShowData.id, selectedPlatforms);
       }
 
       const seasonsWithEpisodes = Object.entries(episodeUrls).filter(
         ([_, episodes]) => Object.keys(episodes).length > 0,
-      )
+      );
 
       for (const [seasonNum, episodes] of seasonsWithEpisodes) {
         const { data: seasonData, error: seasonError } = await supabase
@@ -129,109 +145,130 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
             name: `Temporada ${seasonNum}`,
           })
           .select()
-          .single()
+          .single();
 
-        if (seasonError) throw seasonError
+        if (seasonError) throw seasonError;
 
-        const episodePromises = Object.entries(episodes).map(([episodeNum, url]) => {
-          if (!url) return Promise.resolve()
+        const episodePromises = Object.entries(episodes).map(
+          ([episodeNum, url]) => {
+            if (!url) return Promise.resolve();
 
-          const validation = z.string().url({ message: "URL de video inválida" }).min(1).safeParse(url)
-          if (!validation.success) {
-            throw new Error(`URL inválida para episodio ${episodeNum} de temporada ${seasonNum}`)
-          }
+            const validation = z
+              .string()
+              .url({ message: "URL de video inválida" })
+              .min(1)
+              .safeParse(url);
+            if (!validation.success) {
+              throw new Error(
+                `URL inválida para episodio ${episodeNum} de temporada ${seasonNum}`,
+              );
+            }
 
-          return supabase.from("episodes").upsert({
-            season_id: seasonData.id,
-            episode_number: Number.parseInt(episodeNum),
-            name: `Episodio ${episodeNum}`,
-            video_url: url,
-          })
-        })
+            return supabase.from("episodes").upsert({
+              season_id: seasonData.id,
+              episode_number: Number.parseInt(episodeNum),
+              name: `Episodio ${episodeNum}`,
+              video_url: url,
+            });
+          },
+        );
 
-        await Promise.all(episodePromises)
+        await Promise.all(episodePromises);
       }
 
-      const importedSeasons = seasonsWithEpisodes.map(([s]) => s).join(", ")
+      const importedSeasons = seasonsWithEpisodes.map(([s]) => s).join(", ");
       toast({
         title: "¡Serie importada!",
         description: `${selectedShow.name} Temporada(s) ${importedSeasons} ha sido añadida`,
-      })
+      });
 
-      setSelectedShow(null)
-      setShowDetails(null)
-      setEpisodeUrls({})
-      setSelectedPlatforms([])
+      setSelectedShow(null);
+      setShowDetails(null);
+      setEpisodeUrls({});
+      setSelectedPlatforms([]);
     } catch (error: unknown) {
-      let errorMessage = "Ocurrió un error desconocido"
+      let errorMessage = "Ocurrió un error desconocido";
       if (error instanceof Error) {
-        errorMessage = error.message
+        errorMessage = error.message;
       }
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result as string
-      const lines = text.split("\n").filter((line) => line.trim())
+      const text = e.target?.result as string;
+      const lines = text.split("\n").filter((line) => line.trim());
 
-      const newEpisodeUrls: { [season: number]: { [episode: number]: string } } = { ...episodeUrls }
+      const newEpisodeUrls: {
+        [season: number]: { [episode: number]: string };
+      } = { ...episodeUrls };
 
       for (const line of lines) {
-        if (line.toLowerCase().includes("temporada") || line.toLowerCase().includes("season")) continue
+        if (
+          line.toLowerCase().includes("temporada") ||
+          line.toLowerCase().includes("season")
+        )
+          continue;
 
-        const parts = line.split(",").map((p) => p.trim())
+        const parts = line.split(",").map((p) => p.trim());
         if (parts.length >= 3) {
-          const season = Number.parseInt(parts[0])
-          const episode = Number.parseInt(parts[1])
-          const url = parts[2]
+          const season = Number.parseInt(parts[0]);
+          const episode = Number.parseInt(parts[1]);
+          const url = parts[2];
 
           if (!isNaN(season) && !isNaN(episode) && url) {
             if (!newEpisodeUrls[season]) {
-              newEpisodeUrls[season] = {}
+              newEpisodeUrls[season] = {};
             }
-            newEpisodeUrls[season][episode] = url
+            newEpisodeUrls[season][episode] = url;
           }
         }
       }
 
-      setEpisodeUrls(newEpisodeUrls)
+      setEpisodeUrls(newEpisodeUrls);
       toast({
         title: "CSV importado",
-        description: "Los enlaces de episodios han sido cargados desde el archivo CSV",
-      })
-    }
-    reader.readAsText(file)
+        description:
+          "Los enlaces de episodios han sido cargados desde el archivo CSV",
+      });
+    };
+    reader.readAsText(file);
 
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   if (results.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Busca series para importarlas y añadir enlaces de video por episodio</p>
+        <p className="text-muted-foreground">
+          Busca series para importarlas y añadir enlaces de video por episodio
+        </p>
       </div>
-    )
+    );
   }
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
         {results.map((show) => (
-          <Card key={show.id} className="overflow-hidden cursor-pointer" onClick={() => handleShowClick(show)}>
+          <Card
+            key={show.id}
+            className="overflow-hidden cursor-pointer"
+            onClick={() => handleShowClick(show)}
+          >
             <div className="aspect-[2/3] relative">
               {show.poster_path ? (
                 <img
@@ -241,14 +278,20 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
                 />
               ) : (
                 <div className="w-full h-full bg-secondary flex items-center justify-center">
-                  <span className="text-muted-foreground text-sm">Sin imagen</span>
+                  <span className="text-muted-foreground text-sm">
+                    Sin imagen
+                  </span>
                 </div>
               )}
             </div>
             <div className="p-3">
-              <h3 className="font-semibold text-sm line-clamp-2">{show.name}</h3>
+              <h3 className="font-semibold text-sm line-clamp-2">
+                {show.name}
+              </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                {show.first_air_date ? new Date(show.first_air_date).getFullYear() : "N/A"}
+                {show.first_air_date
+                  ? new Date(show.first_air_date).getFullYear()
+                  : "N/A"}
               </p>
             </div>
           </Card>
@@ -271,40 +314,68 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
                   className="hidden"
                   id="csv-import"
                 />
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
                   <Upload className="h-4 w-4" />
                   Importar CSV
                 </Button>
-                <span className="text-xs text-muted-foreground">Formato: temporada,episodio,url</span>
+                <span className="text-xs text-muted-foreground">
+                  Formato: temporada,episodio,url
+                </span>
               </div>
 
-              <PlatformSelector selectedPlatforms={selectedPlatforms} onPlatformsChange={setSelectedPlatforms} />
+              <PlatformSelector
+                selectedPlatforms={selectedPlatforms}
+                onPlatformsChange={setSelectedPlatforms}
+              />
 
-              <Tabs value={selectedSeason.toString()} onValueChange={(v) => setSelectedSeason(Number.parseInt(v))}>
+              <Tabs
+                value={selectedSeason.toString()}
+                onValueChange={(v) => setSelectedSeason(Number.parseInt(v))}
+              >
                 <TabsList className="w-full overflow-x-auto flex-wrap h-auto">
-                  {Array.from({ length: showDetails.number_of_seasons }, (_, i) => i + 1).map((season) => (
+                  {Array.from(
+                    { length: showDetails.number_of_seasons },
+                    (_, i) => i + 1,
+                  ).map((season) => (
                     <TabsTrigger key={season} value={season.toString()}>
                       Temporada {season}
                     </TabsTrigger>
                   ))}
                 </TabsList>
 
-                {Array.from({ length: showDetails.number_of_seasons }, (_, i) => i + 1).map((season) => (
-                  <TabsContent key={season} value={season.toString()} className="space-y-3">
+                {Array.from(
+                  { length: showDetails.number_of_seasons },
+                  (_, i) => i + 1,
+                ).map((season) => (
+                  <TabsContent
+                    key={season}
+                    value={season.toString()}
+                    className="space-y-3"
+                  >
                     <p className="text-sm text-muted-foreground mb-4">
-                      Ingresa las URLs de video para cada episodio de la temporada {season}(
+                      Ingresa las URLs de video para cada episodio de la
+                      temporada {season}(
                       {seasonDetails[season]?.episode_count || 0} episodios)
                     </p>
                     {seasonDetails[season]?.episodes?.map((episode) => (
                       <div key={episode.episode_number}>
-                        <Label htmlFor={`episode-${season}-${episode.episode_number}`}>
+                        <Label
+                          htmlFor={`episode-${season}-${episode.episode_number}`}
+                        >
                           Episodio {episode.episode_number}: {episode.name}
                         </Label>
                         <Input
                           id={`episode-${season}-${episode.episode_number}`}
                           type="url"
                           placeholder="https://..."
-                          value={episodeUrls[season]?.[episode.episode_number] || ""}
+                          value={
+                            episodeUrls[season]?.[episode.episode_number] || ""
+                          }
                           onChange={(e) =>
                             setEpisodeUrls({
                               ...episodeUrls,
@@ -317,7 +388,11 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
                         />
                       </div>
                     ))}
-                    {!seasonDetails[season] && <p className="text-sm text-muted-foreground">Cargando episodios...</p>}
+                    {!seasonDetails[season] && (
+                      <p className="text-sm text-muted-foreground">
+                        Cargando episodios...
+                      </p>
+                    )}
                   </TabsContent>
                 ))}
               </Tabs>
@@ -327,7 +402,8 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
                 disabled={
                   loading ||
                   Object.values(episodeUrls).every(
-                    (episodes) => !episodes || Object.values(episodes).every((url) => !url),
+                    (episodes) =>
+                      !episodes || Object.values(episodes).every((url) => !url),
                   )
                 }
                 className="w-full"
@@ -339,5 +415,5 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
         </DialogContent>
       </Dialog>
     </>
-  )
-}
+  );
+};

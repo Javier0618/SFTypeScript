@@ -1,66 +1,75 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { getImportedTVShows } from "@/lib/supabaseQueries"
-import { supabase } from "@/integrations/supabase/client"
-import type { TVShow } from "@/lib/tmdb"
-import { getTVSeasonDetails } from "@/lib/tmdb"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Pencil, Trash2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { PlatformSelector } from "./PlatformSelector"
-import { getTVShowPlatforms, setTVShowPlatforms } from "@/lib/platformQueries"
+import { useState, useEffect, useCallback } from "react";
+import { getImportedTVShows } from "@/lib/supabaseQueries";
+import { supabase } from "@/integrations/supabase/client";
+import type { TVShow } from "@/lib/tmdb";
+import { getTVSeasonDetails } from "@/lib/tmdb";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pencil, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { PlatformSelector } from "./PlatformSelector";
+import { getTVShowPlatforms, setTVShowPlatforms } from "@/lib/platformQueries";
 
 interface Season {
-  id: string
-  season_number: number
-  name: string
-  episode_count: number
+  id: string;
+  season_number: number;
+  name: string;
+  episode_count: number;
 }
 
 interface CombinedEpisode {
-  id?: string
-  episode_number: number
-  name: string
-  video_url: string
-  isNew: boolean
+  id?: string;
+  episode_number: number;
+  name: string;
+  video_url: string;
+  isNew: boolean;
 }
 
 export const ImportedTVShowsList = () => {
-  const [shows, setShows] = useState<TVShow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [editingShow, setEditingShow] = useState<TVShow | null>(null)
-  const [seasons, setSeasons] = useState<Season[]>([])
-  const [episodes, setEpisodes] = useState<Record<string, CombinedEpisode[]>>({})
-  const [editingEpisodes, setEditingEpisodes] = useState<Record<string, string>>({})
-  const [category, setCategory] = useState("")
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
-  const { toast } = useToast()
+  const [shows, setShows] = useState<TVShow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingShow, setEditingShow] = useState<TVShow | null>(null);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [episodes, setEpisodes] = useState<Record<string, CombinedEpisode[]>>(
+    {},
+  );
+  const [editingEpisodes, setEditingEpisodes] = useState<
+    Record<string, string>
+  >({});
+  const [category, setCategory] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const { toast } = useToast();
 
   const loadShows = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await getImportedTVShows()
-      setShows(data)
+      const data = await getImportedTVShows();
+      setShows(data);
     } catch (error) {
-      console.error("Error loading shows:", error)
+      console.error("Error loading shows:", error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las series",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [toast])
+  }, [toast]);
 
   useEffect(() => {
-    loadShows()
-  }, [loadShows])
+    loadShows();
+  }, [loadShows]);
 
   const loadShowDetails = async (tmdbId: number) => {
     try {
@@ -68,105 +77,118 @@ export const ImportedTVShowsList = () => {
         .from("seasons")
         .select("*")
         .eq("tv_show_id", tmdbId)
-        .order("season_number")
+        .order("season_number");
 
-      if (seasonsError) throw seasonsError
-      setSeasons(seasonsData || [])
+      if (seasonsError) throw seasonsError;
+      setSeasons(seasonsData || []);
 
-      const episodesData: Record<string, CombinedEpisode[]> = {}
-      const editingData: Record<string, string> = {}
+      const episodesData: Record<string, CombinedEpisode[]> = {};
+      const editingData: Record<string, string> = {};
 
       for (const season of seasonsData || []) {
         const { data: dbEpisodes, error: epsError } = await supabase
           .from("episodes")
           .select("*")
           .eq("season_id", season.id)
-          .order("episode_number")
+          .order("episode_number");
 
-        if (epsError) throw epsError
+        if (epsError) throw epsError;
 
-        const tmdbSeasonData = await getTVSeasonDetails(tmdbId, season.season_number)
-        const tmdbEpisodes = tmdbSeasonData?.episodes || []
+        const tmdbSeasonData = await getTVSeasonDetails(
+          tmdbId,
+          season.season_number,
+        );
+        const tmdbEpisodes = tmdbSeasonData?.episodes || [];
 
-        const dbEpisodesMap = new Map((dbEpisodes || []).map((ep) => [ep.episode_number, ep]))
+        const dbEpisodesMap = new Map(
+          (dbEpisodes || []).map((ep) => [ep.episode_number, ep]),
+        );
 
         const combinedEpisodes: CombinedEpisode[] = tmdbEpisodes.map(
           (tmdbEp: { episode_number: number; name: string }) => {
-            const dbEp = dbEpisodesMap.get(tmdbEp.episode_number)
+            const dbEp = dbEpisodesMap.get(tmdbEp.episode_number);
 
             if (dbEp) {
-              editingData[dbEp.id] = dbEp.video_url || ""
+              editingData[dbEp.id] = dbEp.video_url || "";
               return {
                 id: dbEp.id,
                 episode_number: tmdbEp.episode_number,
                 name: tmdbEp.name || `Episodio ${tmdbEp.episode_number}`,
                 video_url: dbEp.video_url || "",
                 isNew: false,
-              }
+              };
             } else {
-              const tempId = `new-${season.id}-${tmdbEp.episode_number}`
-              editingData[tempId] = ""
+              const tempId = `new-${season.id}-${tmdbEp.episode_number}`;
+              editingData[tempId] = "";
               return {
                 id: tempId,
                 episode_number: tmdbEp.episode_number,
                 name: tmdbEp.name || `Episodio ${tmdbEp.episode_number}`,
                 video_url: "",
                 isNew: true,
-              }
+              };
             }
           },
-        )
+        );
 
-        episodesData[season.id] = combinedEpisodes
+        episodesData[season.id] = combinedEpisodes;
       }
 
-      setEpisodes(episodesData)
-      setEditingEpisodes(editingData)
+      setEpisodes(episodesData);
+      setEditingEpisodes(editingData);
     } catch (error) {
-      console.error("Error loading show details:", error)
+      console.error("Error loading show details:", error);
     }
-  }
+  };
 
   const handleDelete = async (tmdbId: number) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta serie y todos sus episodios?")) return
+    if (
+      !confirm(
+        "¿Estás seguro de que quieres eliminar esta serie y todos sus episodios?",
+      )
+    )
+      return;
 
     try {
-      const { error } = await supabase.from("tv_shows_imported").delete().eq("tmdb_id", tmdbId)
+      const { error } = await supabase
+        .from("tv_shows_imported")
+        .delete()
+        .eq("tmdb_id", tmdbId);
 
-      if (error) throw error
+      if (error) throw error;
 
       toast({
         title: "Serie eliminada",
         description: "La serie se eliminó correctamente",
-      })
+      });
 
-      await loadShows()
+      await loadShows();
     } catch (error) {
-      console.error("Error deleting show:", error)
+      console.error("Error deleting show:", error);
       toast({
         title: "Error",
         description: "No se pudo eliminar la serie",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleUpdateEpisodes = async () => {
-    if (!editingShow) return
+    if (!editingShow) return;
 
     try {
       await supabase
         .from("tv_shows_imported")
         .update({ category: category || null })
-        .eq("tmdb_id", editingShow.id)
+        .eq("tmdb_id", editingShow.id);
 
-      await setTVShowPlatforms(editingShow.id, selectedPlatforms)
+      await setTVShowPlatforms(editingShow.id, selectedPlatforms);
 
       for (const [seasonId, seasonEpisodes] of Object.entries(episodes)) {
         for (const episode of seasonEpisodes) {
-          const videoUrl = editingEpisodes[episode.id || ""]?.trim()
+          const videoUrl = editingEpisodes[episode.id || ""]?.trim();
 
-          if (!videoUrl) continue
+          if (!videoUrl) continue;
 
           if (episode.isNew) {
             await supabase.from("episodes").insert({
@@ -174,9 +196,12 @@ export const ImportedTVShowsList = () => {
               episode_number: episode.episode_number,
               name: episode.name,
               video_url: videoUrl,
-            })
+            });
           } else if (episode.id) {
-            await supabase.from("episodes").update({ video_url: videoUrl }).eq("id", episode.id)
+            await supabase
+              .from("episodes")
+              .update({ video_url: videoUrl })
+              .eq("id", episode.id);
           }
         }
       }
@@ -184,46 +209,50 @@ export const ImportedTVShowsList = () => {
       toast({
         title: "Serie actualizada",
         description: "La serie se actualizó correctamente",
-      })
+      });
 
-      setEditingShow(null)
-      setCategory("")
-      setSelectedPlatforms([])
-      await loadShows()
+      setEditingShow(null);
+      setCategory("");
+      setSelectedPlatforms([]);
+      await loadShows();
     } catch (error) {
-      console.error("Error updating episodes:", error)
+      console.error("Error updating episodes:", error);
       toast({
         title: "Error",
         description: "No se pudo actualizar la serie",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleOpenEdit = async (show: TVShow) => {
-    setEditingShow(show)
-    setCategory("")
-    loadShowDetails(show.id)
+    setEditingShow(show);
+    setCategory("");
+    loadShowDetails(show.id);
     try {
-      const platforms = await getTVShowPlatforms(show.id)
-      setSelectedPlatforms(platforms)
+      const platforms = await getTVShowPlatforms(show.id);
+      setSelectedPlatforms(platforms);
     } catch (error) {
-      console.error("Error loading show platforms:", error)
-      setSelectedPlatforms([])
+      console.error("Error loading show platforms:", error);
+      setSelectedPlatforms([]);
     }
-  }
+  };
 
   if (loading) {
-    return <div className="text-center py-8">Cargando series...</div>
+    return <div className="text-center py-8">Cargando series...</div>;
   }
 
   if (shows.length === 0) {
-    return <div className="text-center py-8 text-muted-foreground">No hay series importadas</div>
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No hay series importadas
+      </div>
+    );
   }
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         {shows.map((show) => (
           <div key={show.id} className="group relative">
             <div className="relative aspect-[2/3] rounded-lg overflow-hidden">
@@ -233,21 +262,36 @@ export const ImportedTVShowsList = () => {
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <Button size="icon" variant="secondary" onClick={() => handleOpenEdit(show)}>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  onClick={() => handleOpenEdit(show)}
+                >
                   <Pencil className="w-4 h-4" />
                 </Button>
-                <Button size="icon" variant="destructive" onClick={() => handleDelete(show.id)}>
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  onClick={() => handleDelete(show.id)}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
-            <h3 className="mt-2 text-sm font-medium line-clamp-2">{show.name}</h3>
-            <p className="text-xs text-muted-foreground">{show.first_air_date?.split("-")[0]}</p>
+            <h3 className="mt-2 text-sm font-medium line-clamp-2">
+              {show.name}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {show.first_air_date?.split("-")[0]}
+            </p>
           </div>
         ))}
       </div>
 
-      <Dialog open={!!editingShow} onOpenChange={(open) => !open && setEditingShow(null)}>
+      <Dialog
+        open={!!editingShow}
+        onOpenChange={(open) => !open && setEditingShow(null)}
+      >
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Serie: {editingShow?.name}</DialogTitle>
@@ -263,9 +307,17 @@ export const ImportedTVShowsList = () => {
                 onChange={(e) => setCategory(e.target.value)}
               />
             </div>
-            <PlatformSelector selectedPlatforms={selectedPlatforms} onPlatformsChange={setSelectedPlatforms} />
+            <PlatformSelector
+              selectedPlatforms={selectedPlatforms}
+              onPlatformsChange={setSelectedPlatforms}
+            />
             <Tabs defaultValue={seasons[0]?.id}>
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${seasons.length}, 1fr)` }}>
+              <TabsList
+                className="grid w-full"
+                style={{
+                  gridTemplateColumns: `repeat(${seasons.length}, 1fr)`,
+                }}
+              >
                 {seasons.map((season) => (
                   <TabsTrigger key={season.id} value={season.id}>
                     {season.name}
@@ -273,17 +325,27 @@ export const ImportedTVShowsList = () => {
                 ))}
               </TabsList>
               {seasons.map((season) => (
-                <TabsContent key={season.id} value={season.id} className="space-y-4">
+                <TabsContent
+                  key={season.id}
+                  value={season.id}
+                  className="space-y-4"
+                >
                   <p className="text-sm text-muted-foreground">
-                    Temporada {season.season_number} - {episodes[season.id]?.length || 0} episodios
+                    Temporada {season.season_number} -{" "}
+                    {episodes[season.id]?.length || 0} episodios
                   </p>
                   {episodes[season.id]?.map((episode) => (
                     <div key={episode.id}>
-                      <Label htmlFor={`episode-${episode.id}`} className="flex items-center gap-2">
+                      <Label
+                        htmlFor={`episode-${episode.id}`}
+                        className="flex items-center gap-2"
+                      >
                         Episodio {episode.episode_number}
                         {episode.name && `: ${episode.name}`}
                         {episode.isNew && (
-                          <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">Nuevo</span>
+                          <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">
+                            Nuevo
+                          </span>
                         )}
                       </Label>
                       <Input
@@ -310,5 +372,5 @@ export const ImportedTVShowsList = () => {
         </DialogContent>
       </Dialog>
     </>
-  )
-}
+  );
+};
