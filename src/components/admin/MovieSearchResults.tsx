@@ -22,7 +22,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { PlatformSelector } from "./PlatformSelector";
+import { TabSelector } from "./TabSelector";
 import { setMoviePlatforms } from "@/lib/platformQueries";
+import { addItemToSection } from "@/lib/sectionQueries";
 
 const videoUrlSchema = z
   .string()
@@ -39,6 +41,7 @@ export const MovieSearchResults = ({ results }: MovieSearchResultsProps) => {
   const [loading, setLoading] = useState(false);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -98,6 +101,10 @@ export const MovieSearchResults = ({ results }: MovieSearchResultsProps) => {
         await setMoviePlatforms(selectedMovie.id, selectedPlatforms);
       }
 
+      for (const tabId of selectedTabs) {
+        await addItemToSection(tabId, selectedMovie.id, "movie", 0);
+      }
+
       toast({
         title: "¡Película importada!",
         description: `${selectedMovie.title} ha sido añadida exitosamente`,
@@ -106,6 +113,7 @@ export const MovieSearchResults = ({ results }: MovieSearchResultsProps) => {
       setSelectedMovie(null);
       setVideoUrl("");
       setSelectedPlatforms([]);
+      setSelectedTabs([]);
     } catch (error: unknown) {
       let errorMessage = "Ocurrió un error desconocido";
       if (error instanceof Error) {
@@ -191,6 +199,10 @@ export const MovieSearchResults = ({ results }: MovieSearchResultsProps) => {
             <PlatformSelector
               selectedPlatforms={selectedPlatforms}
               onPlatformsChange={setSelectedPlatforms}
+            />
+            <TabSelector
+              selectedTabs={selectedTabs}
+              onTabsChange={setSelectedTabs}
             />
             <Button
               onClick={handleImport}

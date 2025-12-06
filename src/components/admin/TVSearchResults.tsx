@@ -28,7 +28,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { z } from "zod";
 import { Upload } from "lucide-react";
 import { PlatformSelector } from "./PlatformSelector";
+import { TabSelector } from "./TabSelector";
 import { setTVShowPlatforms } from "@/lib/platformQueries";
+import { addItemToSection } from "@/lib/sectionQueries";
 
 interface TVSearchResultsProps {
   results: TVShow[];
@@ -59,6 +61,7 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
   const [loading, setLoading] = useState(false);
   const [tvShowGenres, setTvShowGenres] = useState<Genre[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,6 +135,10 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
         await setTVShowPlatforms(tvShowData.id, selectedPlatforms);
       }
 
+      for (const tabId of selectedTabs) {
+        await addItemToSection(tabId, tvShowData.id, "tv", 0);
+      }
+
       const seasonsWithEpisodes = Object.entries(episodeUrls).filter(
         ([_, episodes]) => Object.keys(episodes).length > 0,
       );
@@ -186,6 +193,7 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
       setShowDetails(null);
       setEpisodeUrls({});
       setSelectedPlatforms([]);
+      setSelectedTabs([]);
     } catch (error: unknown) {
       let errorMessage = "Ocurrió un error desconocido";
       if (error instanceof Error) {
@@ -331,6 +339,11 @@ export const TVSearchResults = ({ results }: TVSearchResultsProps) => {
               <PlatformSelector
                 selectedPlatforms={selectedPlatforms}
                 onPlatformsChange={setSelectedPlatforms}
+              />
+
+              <TabSelector
+                selectedTabs={selectedTabs}
+                onTabsChange={setSelectedTabs}
               />
 
               <Tabs
