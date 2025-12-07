@@ -68,7 +68,7 @@ export const BackdropCarousel = ({ section, tabId }: BackdropCarouselProps) => {
           {filteredContent.map((item: Media) => {
             const mediaType = "title" in item ? "movie" : "tv";
             const title = "title" in item ? item.title : item.name;
-            const detailPath = mediaType === "movie" ? `/movie/${item.id}` : `/series/${item.id}`;
+            const detailPath = mediaType === "movie" ? `/movie/${item.id}` : `/tv/${item.id}`;
             
             return (
               <CarouselItem
