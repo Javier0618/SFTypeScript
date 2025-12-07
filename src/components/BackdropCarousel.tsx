@@ -80,7 +80,7 @@ export const BackdropCarousel = ({ section, tabId }: BackdropCarouselProps) => {
                     <img
                       src={getBackdropUrl(item.backdrop_path)}
                       alt={title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-300 md:group-hover:scale-105"
                       loading="lazy"
                     />
                     
@@ -91,7 +91,7 @@ export const BackdropCarousel = ({ section, tabId }: BackdropCarouselProps) => {
                         {title}
                       </h3>
                       
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
                         <Button
                           size="sm"
                           className="bg-white text-black hover:bg-white/90 gap-1"
