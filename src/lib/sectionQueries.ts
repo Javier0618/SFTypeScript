@@ -813,7 +813,7 @@ const getCategoryContentFromCustomTab = async (
 }
 
 export const getSectionContentForTab = async (section: Section, tabId: string): Promise<Media[]> => {
-  if (section.type === "custom") {
+  if (section.type === "custom" || section.type === "backdrop_carousel") {
     return getCustomSectionContent(section.id)
   } else {
     if (isCustomTab(tabId)) {
