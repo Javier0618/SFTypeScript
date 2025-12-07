@@ -55,6 +55,7 @@ export const CustomSectionEditor = ({ section }: CustomSectionEditorProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-items", section.id] });
+      queryClient.invalidateQueries({ queryKey: ["section-content", section.id] });
       toast.success("Contenido agregado a la sección");
     },
     onError: () => {
@@ -66,6 +67,7 @@ export const CustomSectionEditor = ({ section }: CustomSectionEditorProps) => {
     mutationFn: removeItemFromSection,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-items", section.id] });
+      queryClient.invalidateQueries({ queryKey: ["section-content", section.id] });
       toast.success("Contenido removido de la sección");
     },
     onError: () => {
