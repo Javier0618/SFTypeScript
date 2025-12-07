@@ -120,8 +120,9 @@ export const SectionManager = () => {
         html_content: "",
       })
     },
-    onError: () => {
-      toast.error("Error al crear la sección")
+    onError: (error: Error) => {
+      console.error("Error creating section:", error)
+      toast.error(`Error al crear la sección: ${error.message || "Error desconocido"}`)
     },
   })
 

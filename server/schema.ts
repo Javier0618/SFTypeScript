@@ -91,6 +91,7 @@ export const sections = pgTable('sections', {
   contentType: text('content_type').default('all'),
   screenVisibility: text('screen_visibility').default('all'),
   htmlContent: text('html_content'),
+  slug: text('slug'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
