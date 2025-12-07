@@ -1,0 +1,88 @@
+<style>
+#rotating-ad {
+  background: #e24a0b; /* Fondo naranja plano */
+  color: #fff8f2; /* Blanco cálido */
+  padding: 16px;
+  text-align: center;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  margin: 12px auto;
+  overflow: hidden;
+  user-select: none; /* Evita copiar texto */
+}
+#rotating-ad span {
+  display: inline-block;
+  transition: opacity 0.5s ease-in-out;
+  opacity: 1;
+}
+#rotating-ad span.fade-out {
+  opacity: 0;
+}
+#rotating-ad span.fade-in {
+  opacity: 1;
+}
+.ad-highlight {
+  color: #ffd700;
+  font-weight: 700;
+}
+.ad-emoji {
+  font-size: 1.1em;
+  margin-right: 6px;
+}
+</style>
+
+<div id="rotating-ad" oncontextmenu="return false;">
+  <span></span>
+</div>
+
+<script>
+// === ROTACIÓN DE ANUNCIOS ===
+const ads = [
+  "<span class='ad-emoji'>🎥</span> La mejor experiencia en <span class='ad-highlight'>StreamFusion</span>, ¡gratis!",
+  "<span class='ad-emoji'>🌟</span> Películas, series y animes gratis cada día.",
+  "<span class='ad-emoji'>🔥</span> Todo gratis en <span class='ad-highlight'>StreamFusion</span>.",
+  "<span class='ad-emoji'>✨</span> Cine y series sin costo, ¡siempre!"
+];
+
+let i = 0;
+const span = document.querySelector('#rotating-ad span');
+span.innerHTML = ads[0];
+
+function rotateAd() {
+  span.classList.add('fade-out');
+  setTimeout(() => {
+    i = (i + 1) % ads.length;
+    span.innerHTML = ads[i];
+    span.classList.remove('fade-out');
+    span.classList.add('fade-in');
+    setTimeout(() => span.classList.remove('fade-in'), 500);
+  }, 500);
+}
+setInterval(rotateAd, 5000);
+
+
+// === BLOQUEO DE CLIC DERECHO Y ATAJOS ===
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', function(e) {
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && ['I','J','C','K'].includes(e.key.toUpperCase())) ||
+    (e.ctrlKey && ['U','S','P'].includes(e.key.toUpperCase())) ||
+    (e.metaKey && e.altKey && e.key.toUpperCase() === 'I')
+  ) {
+    e.preventDefault();
+    alert('Esa función está desactivada.');
+    return false;
+  }
+});
+
+// === BLOQUEO DE CLIC DERECHO EN IFRAMES ===
+window.addEventListener('load', function() {
+  document.querySelectorAll('iframe').forEach(frame => {
+    frame.setAttribute('oncontextmenu', 'return false;');
+    frame.style.pointerEvents = 'auto';
+  });
+});
+</script>
