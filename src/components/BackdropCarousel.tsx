@@ -24,7 +24,12 @@ const getBackdropUrl = (backdropPath: string | null | undefined, size: string = 
 export const BackdropCarousel = ({ section, tabId }: BackdropCarouselProps) => {
   const { data: content, isLoading } = useQuery({
     queryKey: ["section-content", section.id, tabId || "default"],
-    queryFn: () => tabId ? getSectionContentForTab(section, tabId) : getSectionContent(section),
+    queryFn: async () => {
+      console.log("BackdropCarousel loading content for section:", section.id, section.name, "type:", section.type);
+      const result = tabId ? await getSectionContentForTab(section, tabId) : await getSectionContent(section);
+      console.log("BackdropCarousel content loaded:", result?.length, "items", result);
+      return result;
+    },
     staleTime: Infinity,
   });
 
