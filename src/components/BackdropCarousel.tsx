@@ -84,7 +84,7 @@ export const BackdropCarousel = ({ section, tabId }: BackdropCarouselProps) => {
                       loading="lazy"
                     />
                     
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 md:group-hover:opacity-80 transition-opacity duration-300" />
                     
                     <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-0 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
                       <h3 className="text-white font-bold text-lg md:text-xl line-clamp-2 mb-2">
