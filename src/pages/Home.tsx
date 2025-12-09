@@ -29,6 +29,8 @@ import { getImageUrl } from "@/lib/tmdb";
 import { useScreenSize, shouldShowForScreen } from "@/hooks/useScreenSize";
 import { BackdropCarousel } from "@/components/BackdropCarousel";
 import { CustomHTMLSection } from "@/components/CustomHTMLSection";
+import { Top10Carousel } from "@/components/Top10Carousel";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const getSessionKey = () => {
   if (typeof window !== "undefined") {
@@ -128,7 +130,7 @@ const Home = () => {
     if (tabId === "inicio") return "/";
     if (tabId === "peliculas") return "/peliculas";
     if (tabId === "series") return "/series";
-    
+
     const section = sections?.find((s) => s.id === tabId);
     if (section?.slug) {
       return `/tab/${section.slug}`;
@@ -178,7 +180,10 @@ const Home = () => {
       { id: "series", label: "Series", icon: <Tv className="w-4 h-4" /> },
     ];
     const filteredTabSections = (tabSections || []).filter((section) =>
-      shouldShowForScreen(section.screen_visibility as "all" | "mobile" | "desktop", screenType),
+      shouldShowForScreen(
+        section.screen_visibility as "all" | "mobile" | "desktop",
+        screenType,
+      ),
     );
     const customTabs: Tab[] = filteredTabSections.map((section) => ({
       id: section.id,
@@ -256,7 +261,7 @@ const Home = () => {
           <div className="mt-8">
             <StreamingPlatforms />
           </div>
-          <div className="container mx-auto px-2 py-1">
+          <div className="container mx-auto px-4 py-1">
             <MediaCarousel
               title="Películas Populares"
               items={allMovies?.slice(0, 20) || []}
@@ -273,11 +278,15 @@ const Home = () => {
               ?.filter((section) =>
                 shouldShowForScreen(
                   (section as any).screen_visibility,
-                  screenType
-                )
+                  screenType,
+                ),
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} tabId="inicio" />
+                <DynamicSection
+                  key={section.id}
+                  section={section}
+                  tabId="inicio"
+                />
               ))}
           </div>
         </>
@@ -291,7 +300,7 @@ const Home = () => {
           <div className="mt-8">
             <StreamingPlatforms />
           </div>
-          <div className="container mx-auto px-2 py-1">
+          <div className="container mx-auto px-4 py-1">
             <MediaCarousel
               title="Todas las Películas"
               items={allMovies || []}
@@ -302,11 +311,15 @@ const Home = () => {
               ?.filter((section) =>
                 shouldShowForScreen(
                   (section as any).screen_visibility,
-                  screenType
-                )
+                  screenType,
+                ),
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} tabId="peliculas" />
+                <DynamicSection
+                  key={section.id}
+                  section={section}
+                  tabId="peliculas"
+                />
               ))}
           </div>
         </>
@@ -320,7 +333,7 @@ const Home = () => {
           <div className="mt-8">
             <StreamingPlatforms />
           </div>
-          <div className="container mx-auto px-2 py-1">
+          <div className="container mx-auto px-4 py-1">
             <MediaCarousel
               title="Todas las Series"
               items={allSeries || []}
@@ -331,11 +344,15 @@ const Home = () => {
               ?.filter((section) =>
                 shouldShowForScreen(
                   (section as any).screen_visibility,
-                  screenType
-                )
+                  screenType,
+                ),
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} tabId="series" />
+                <DynamicSection
+                  key={section.id}
+                  section={section}
+                  tabId="series"
+                />
               ))}
           </div>
         </>
@@ -348,7 +365,7 @@ const Home = () => {
         <div className="mt-8">
           <StreamingPlatforms />
         </div>
-        <div className="container mx-auto px-2 py-1">
+        <div className="container mx-auto px-4 py-1">
           <CustomTabContent sectionId={tabId} />
           <DynamicSectionsForTab tabId={tabId} screenType={screenType} />
         </div>
@@ -357,72 +374,77 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="hidden md:block">
-        <Navbar />
-      </div>
-      <MobileNavbar />
-      <MobileTabNavigation
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
+    <PullToRefresh>
+      <div className="min-h-screen bg-background">
+        <div className="hidden md:block">
+          <Navbar />
+        </div>
+        <MobileNavbar />
+        <MobileTabNavigation
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
 
-      <div className="hidden md:block">
-        {tabs.map((tab) => {
-          const isActive = tab.id === activeTab;
-          return (
-            <div key={tab.id} style={{ display: isActive ? "block" : "none" }}>
-              {renderTabContent(tab.id, isActive)}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="md:hidden overflow-hidden touch-pan-y">
-        <div
-          ref={carouselRef}
-          className="relative w-full"
-          style={{
-            transform: `translateX(-${currentTabIndex * 100}%)`,
-            willChange: "transform",
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            perspective: 1000,
-          }}
-        >
-          {tabs.map((tab, index) => {
-            const isActive = index === currentTabIndex;
-            const shouldRender = Math.abs(index - currentTabIndex) <= 1;
-
+        <div className="hidden md:block">
+          {tabs.map((tab) => {
+            const isActive = tab.id === activeTab;
             return (
               <div
                 key={tab.id}
-                className="w-full overflow-x-hidden"
-                style={{
-                  width: "100vw",
-                  minWidth: "100vw",
-                  maxWidth: "100vw",
-                  position: isActive ? "relative" : "absolute",
-                  top: 0,
-                  left: `${index * 100}%`,
-                  transform: "translateZ(0)",
-                  backfaceVisibility: "hidden",
-                  WebkitBackfaceVisibility: "hidden",
-                  willChange: shouldRender ? "transform" : "auto",
-                }}
+                style={{ display: isActive ? "block" : "none" }}
               >
-                {shouldRender ? (
-                  renderTabContent(tab.id, isActive)
-                ) : (
-                  <div className="min-h-screen" />
-                )}
+                {renderTabContent(tab.id, isActive)}
               </div>
             );
           })}
         </div>
+
+        <div className="md:hidden overflow-hidden touch-pan-y">
+          <div
+            ref={carouselRef}
+            className="relative w-full"
+            style={{
+              transform: `translateX(-${currentTabIndex * 100}%)`,
+              willChange: "transform",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              perspective: 1000,
+            }}
+          >
+            {tabs.map((tab, index) => {
+              const isActive = index === currentTabIndex;
+              const shouldRender = Math.abs(index - currentTabIndex) <= 1;
+
+              return (
+                <div
+                  key={tab.id}
+                  className="w-full overflow-x-hidden"
+                  style={{
+                    width: "100vw",
+                    minWidth: "100vw",
+                    maxWidth: "100vw",
+                    position: isActive ? "relative" : "absolute",
+                    top: 0,
+                    left: `${index * 100}%`,
+                    transform: "translateZ(0)",
+                    backfaceVisibility: "hidden",
+                    WebkitBackfaceVisibility: "hidden",
+                    willChange: shouldRender ? "transform" : "auto",
+                  }}
+                >
+                  {shouldRender ? (
+                    renderTabContent(tab.id, isActive)
+                  ) : (
+                    <div className="min-h-screen" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
-    </div>
+    </PullToRefresh>
   );
 };
 
@@ -446,7 +468,7 @@ const DynamicSectionsForTab = ({
     <>
       {internalSections
         ?.filter((section) =>
-          shouldShowForScreen((section as any).screen_visibility, screenType)
+          shouldShowForScreen((section as any).screen_visibility, screenType),
         )
         .map((section) => (
           <DynamicSection key={section.id} section={section} tabId={tabId} />
@@ -504,18 +526,19 @@ const CustomTabContent = ({ sectionId }: { sectionId: string }) => {
   );
 };
 
-const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }) => {
-  if (section.type === "backdrop_carousel") {
-    return <BackdropCarousel section={section} tabId={tabId} />;
-  }
-
-  if (section.type === "custom_html") {
-    return <CustomHTMLSection section={section} />;
-  }
-
+const StandardSectionContent = ({
+  section,
+  tabId,
+}: {
+  section: Section;
+  tabId?: string;
+}) => {
   const { data: content, isLoading } = useQuery({
     queryKey: ["section-content", section.id, tabId || "default"],
-    queryFn: () => tabId ? getSectionContentForTab(section, tabId) : getSectionContent(section),
+    queryFn: () =>
+      tabId
+        ? getSectionContentForTab(section, tabId)
+        : getSectionContent(section),
     staleTime: Infinity,
   });
 
@@ -537,7 +560,8 @@ const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }
 
   if (!content || content.length === 0) return null;
 
-  const isCustomTab = tabId && !["inicio", "peliculas", "series"].includes(tabId);
+  const isCustomTab =
+    tabId && !["inicio", "peliculas", "series"].includes(tabId);
   const viewAllLink =
     section.type === "category"
       ? isCustomTab
@@ -553,6 +577,25 @@ const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }
       viewAllLink={viewAllLink}
     />
   );
+};
+
+const DynamicSection = ({
+  section,
+  tabId,
+}: {
+  section: Section;
+  tabId?: string;
+}) => {
+  switch (section.type) {
+    case "backdrop_carousel":
+      return <BackdropCarousel section={section} tabId={tabId} />;
+    case "custom_html":
+      return <CustomHTMLSection section={section} />;
+    case "top10":
+      return <Top10Carousel section={section} tabId={tabId} />;
+    default:
+      return <StandardSectionContent section={section} tabId={tabId} />;
+  }
 };
 
 export default Home;

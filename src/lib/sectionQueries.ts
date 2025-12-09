@@ -864,3 +864,87 @@ export const setItemTabs = async (
     await addItemToSection(tabId, itemId, itemType, 0)
   }
 }
+
+export type Top10Item = Media & {
+  ranking: number
+}
+
+export const getTop10Content = async (tabId: string, sectionId: string): Promise<Top10Item[]> => {
+  const { data: section, error: sectionError } = await supabase
+    .from("sections")
+    .select("*")
+    .eq("id", sectionId)
+    .single()
+
+  if (sectionError || !section) return []
+
+  const { data: items, error: itemsError } = await supabase
+    .from("section_items")
+    .select("*")
+    .eq("section_id", sectionId)
+    .order("position", { ascending: true })
+    .limit(10)
+
+  if (itemsError || !items || items.length === 0) return []
+
+  const movieIds = items.filter((item) => item.item_type === "movie").map((item) => item.item_id)
+  const tvIds = items.filter((item) => item.item_type === "tv").map((item) => item.item_id)
+
+  const results: Top10Item[] = []
+
+  if (movieIds.length > 0) {
+    const { data: movies } = await supabase
+      .from("movies_imported")
+      .select("*")
+      .in("tmdb_id", movieIds)
+
+    if (movies) {
+      results.push(
+        ...movies.map((movie): Top10Item => {
+          const item = items.find((i) => i.item_id === movie.tmdb_id && i.item_type === "movie")
+          return {
+            id: movie.tmdb_id,
+            title: movie.title,
+            poster_path: movie.poster_path,
+            backdrop_path: movie.backdrop_path,
+            overview: movie.overview,
+            release_date: movie.release_date,
+            vote_average: Number(movie.vote_average) || 0,
+            vote_count: 0,
+            genre_ids: [],
+            ranking: (item?.position || 0) + 1,
+          }
+        })
+      )
+    }
+  }
+
+  if (tvIds.length > 0) {
+    const { data: tvShows } = await supabase
+      .from("tv_shows_imported")
+      .select("*")
+      .in("tmdb_id", tvIds)
+
+    if (tvShows) {
+      results.push(
+        ...tvShows.map((show): Top10Item => {
+          const item = items.find((i) => i.item_id === show.tmdb_id && i.item_type === "tv")
+          return {
+            id: show.tmdb_id,
+            name: show.name,
+            poster_path: show.poster_path,
+            backdrop_path: show.backdrop_path,
+            overview: show.overview,
+            first_air_date: show.first_air_date,
+            vote_average: Number(show.vote_average) || 0,
+            vote_count: 0,
+            genre_ids: [],
+            ranking: (item?.position || 0) + 1,
+          }
+        })
+      )
+    }
+  }
+
+  return results.sort((a, b) => a.ranking - b.ranking)
+}
