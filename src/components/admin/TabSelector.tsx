@@ -1,38 +1,44 @@
-"use client"
+"use client";
 
-import { useQuery } from "@tanstack/react-query"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { getTabSections } from "@/lib/sectionQueries"
-import { Folder } from "lucide-react"
+import { useQuery } from "@tanstack/react-query";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { getTabSections } from "@/lib/sectionQueries";
+import { Folder } from "lucide-react";
 
 interface TabSelectorProps {
-  selectedTabs: string[]
-  onTabsChange: (tabs: string[]) => void
+  selectedTabs: string[];
+  onTabsChange: (tabs: string[]) => void;
 }
 
-export const TabSelector = ({ selectedTabs, onTabsChange }: TabSelectorProps) => {
+export const TabSelector = ({
+  selectedTabs,
+  onTabsChange,
+}: TabSelectorProps) => {
   const { data: tabSections, isLoading } = useQuery({
     queryKey: ["tabSections"],
     queryFn: getTabSections,
-  })
+  });
 
-  const customTabs = tabSections?.filter((section) => section.type === "custom") || []
+  const customTabs =
+    tabSections?.filter((section) => section.type === "custom") || [];
 
   const handleToggle = (tabId: string) => {
     if (selectedTabs.includes(tabId)) {
-      onTabsChange(selectedTabs.filter((id) => id !== tabId))
+      onTabsChange(selectedTabs.filter((id) => id !== tabId));
     } else {
-      onTabsChange([...selectedTabs, tabId])
+      onTabsChange([...selectedTabs, tabId]);
     }
-  }
+  };
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Cargando pestañas...</div>
+    return (
+      <div className="text-sm text-muted-foreground">Cargando pestañas...</div>
+    );
   }
 
   if (customTabs.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -61,5 +67,5 @@ export const TabSelector = ({ selectedTabs, onTabsChange }: TabSelectorProps) =>
         Selecciona las pestañas donde quieres que aparezca este contenido
       </p>
     </div>
-  )
-}
+  );
+};

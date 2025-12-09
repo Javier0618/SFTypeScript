@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { getTop10Content, type Section, type Top10Item } from "@/lib/sectionQueries";
+import {
+  getTop10Content,
+  type Section,
+  type Top10Item,
+} from "@/lib/sectionQueries";
 import { getImageUrl } from "@/lib/tmdb";
 import { Link } from "react-router-dom";
 import {
@@ -27,15 +31,15 @@ const RankingNumber = ({ number }: { number: number }) => {
       >
         <text
           x="65"
-          y="135" 
+          y="135"
           fontSize="200"
           fontWeight="900"
           textAnchor="middle"
           fill="#000000" // Relleno NEGRO
           stroke="#ffffff" // Borde BLANCO
           strokeWidth="2"
-          paintOrder="stroke fill" 
-          style={{ letterSpacing: "-5px" }} 
+          paintOrder="stroke fill"
+          style={{ letterSpacing: "-40px" }}
         >
           {number}
         </text>
@@ -45,11 +49,18 @@ const RankingNumber = ({ number }: { number: number }) => {
 };
 
 // 2. Componente Top10Card: Ajuste de proporciones
-const Top10Card = ({ item, detailPath, title }: { item: Top10Item; detailPath: string; title: string }) => {
+const Top10Card = ({
+  item,
+  detailPath,
+  title,
+}: {
+  item: Top10Item;
+  detailPath: string;
+  title: string;
+}) => {
   return (
     <Link to={detailPath} className="block group h-full">
       <div className="flex items-stretch gap-0 h-full">
-        
         {/* Contenedor del Número: Más ancho para protagonismo (40%) */}
         <div className="w-[40%] flex-shrink-0 flex items-center justify-center relative z-0">
           <RankingNumber number={item.ranking} />
@@ -78,7 +89,10 @@ const Top10Card = ({ item, detailPath, title }: { item: Top10Item; detailPath: s
   );
 };
 
-export const Top10Carousel = ({ section, tabId = "inicio" }: Top10CarouselProps) => {
+export const Top10Carousel = ({
+  section,
+  tabId = "inicio",
+}: Top10CarouselProps) => {
   const { data: content, isLoading } = useQuery({
     queryKey: ["top10-content", section.id, tabId],
     queryFn: () => getTop10Content(tabId, section.id),
@@ -92,9 +106,12 @@ export const Top10Carousel = ({ section, tabId = "inicio" }: Top10CarouselProps)
         <div className="h-7 w-48 bg-muted animate-pulse rounded mb-4" />
         <div className="flex gap-4 overflow-hidden">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex-shrink-0 flex h-[200px] md:h-[250px] w-[70%] md:w-[40%]">
-               <div className="w-[40%] h-full bg-muted/50 animate-pulse rounded-l-lg"></div>
-               <div className="w-[60%] h-full bg-muted animate-pulse rounded-r-lg"></div>
+            <div
+              key={i}
+              className="flex-shrink-0 flex h-[200px] md:h-[250px] w-[70%] md:w-[40%]"
+            >
+              <div className="w-[40%] h-full bg-muted/50 animate-pulse rounded-l-lg"></div>
+              <div className="w-[60%] h-full bg-muted animate-pulse rounded-r-lg"></div>
             </div>
           ))}
         </div>
@@ -122,7 +139,8 @@ export const Top10Carousel = ({ section, tabId = "inicio" }: Top10CarouselProps)
           {content.map((item: Top10Item) => {
             const mediaType = "title" in item ? "movie" : "tv";
             const title = "title" in item ? item.title : item.name;
-            const detailPath = mediaType === "movie" ? `/movie/${item.id}` : `/tv/${item.id}`;
+            const detailPath =
+              mediaType === "movie" ? `/movie/${item.id}` : `/tv/${item.id}`;
 
             return (
               <CarouselItem

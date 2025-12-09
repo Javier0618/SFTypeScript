@@ -28,6 +28,9 @@ import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { useImageCacheContext } from "@/contexts/ImageCacheContext";
 import { getImageUrl } from "@/lib/tmdb";
 import { useScreenSize, shouldShowForScreen } from "@/hooks/useScreenSize";
+import { BackdropCarousel } from "@/components/BackdropCarousel";
+import { CustomHTMLSection } from "@/components/CustomHTMLSection";
+import { Top10Carousel } from "@/components/Top10Carousel";
 
 const getSessionKey = () => {
   if (typeof window !== "undefined") {
@@ -66,7 +69,7 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { screenType } = useScreenSize();
-  
+
   const identifier = propTabId || slug;
 
   const { data: tabSections } = useQuery({
@@ -78,7 +81,8 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
   const { data: customSection } = useQuery({
     queryKey: ["section-by-slug", identifier],
     queryFn: () => getSectionByIdOrSlug(identifier!),
-    enabled: !!identifier && !["peliculas", "series", "inicio"].includes(identifier),
+    enabled:
+      !!identifier && !["peliculas", "series", "inicio"].includes(identifier),
     staleTime: Infinity,
   });
 
@@ -89,7 +93,9 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
     if (customSection) {
       return customSection.id;
     }
-    const found = tabSections?.find((s) => s.slug === identifier || s.id === identifier);
+    const found = tabSections?.find(
+      (s) => s.slug === identifier || s.id === identifier,
+    );
     return found?.id || identifier || "inicio";
   }, [identifier, customSection, tabSections]);
 
@@ -153,7 +159,7 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
     if (tabId === "inicio") return "/";
     if (tabId === "peliculas") return "/peliculas";
     if (tabId === "series") return "/series";
-    
+
     const section = sections?.find((s) => s.id === tabId);
     if (section?.slug) {
       return `/tab/${section.slug}`;
@@ -190,7 +196,10 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
       { id: "series", label: "Series", icon: <Tv className="w-4 h-4" /> },
     ];
     const filteredTabSections = (tabSections || []).filter((section) =>
-      shouldShowForScreen(section.screen_visibility as "all" | "mobile" | "desktop", screenType),
+      shouldShowForScreen(
+        section.screen_visibility as "all" | "mobile" | "desktop",
+        screenType,
+      ),
     );
     const customTabs: Tab[] = filteredTabSections.map((section) => ({
       id: section.id,
@@ -279,11 +288,15 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
               ?.filter((section) =>
                 shouldShowForScreen(
                   (section as any).screen_visibility,
-                  screenType
-                )
+                  screenType,
+                ),
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} tabId="peliculas" />
+                <DynamicSection
+                  key={section.id}
+                  section={section}
+                  tabId="peliculas"
+                />
               ))}
           </div>
         </>
@@ -308,11 +321,15 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
               ?.filter((section) =>
                 shouldShowForScreen(
                   (section as any).screen_visibility,
-                  screenType
-                )
+                  screenType,
+                ),
               )
               .map((section) => (
-                <DynamicSection key={section.id} section={section} tabId="series" />
+                <DynamicSection
+                  key={section.id}
+                  section={section}
+                  tabId="series"
+                />
               ))}
           </div>
         </>
@@ -423,7 +440,7 @@ const DynamicSectionsForTab = ({
     <>
       {internalSections
         ?.filter((section) =>
-          shouldShowForScreen((section as any).screen_visibility, screenType)
+          shouldShowForScreen((section as any).screen_visibility, screenType),
         )
         .map((section) => (
           <DynamicSection key={section.id} section={section} tabId={tabId} />
@@ -481,10 +498,19 @@ const CustomTabContent = ({ sectionId }: { sectionId: string }) => {
   );
 };
 
-const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }) => {
+const StandardSectionContent = ({
+  section,
+  tabId,
+}: {
+  section: Section;
+  tabId?: string;
+}) => {
   const { data: content, isLoading } = useQuery({
     queryKey: ["section-content", section.id, tabId || "default"],
-    queryFn: () => tabId ? getSectionContentForTab(section, tabId) : getSectionContent(section),
+    queryFn: () =>
+      tabId
+        ? getSectionContentForTab(section, tabId)
+        : getSectionContent(section),
     staleTime: Infinity,
   });
 
@@ -506,7 +532,8 @@ const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }
 
   if (!content || content.length === 0) return null;
 
-  const isCustomTab = tabId && !["inicio", "peliculas", "series"].includes(tabId);
+  const isCustomTab =
+    tabId && !["inicio", "peliculas", "series"].includes(tabId);
   const viewAllLink =
     section.type === "category"
       ? isCustomTab
@@ -522,6 +549,25 @@ const DynamicSection = ({ section, tabId }: { section: Section; tabId?: string }
       viewAllLink={viewAllLink}
     />
   );
+};
+
+const DynamicSection = ({
+  section,
+  tabId,
+}: {
+  section: Section;
+  tabId?: string;
+}) => {
+  switch (section.type) {
+    case "backdrop_carousel":
+      return <BackdropCarousel section={section} tabId={tabId} />;
+    case "custom_html":
+      return <CustomHTMLSection section={section} />;
+    case "top10":
+      return <Top10Carousel section={section} tabId={tabId} />;
+    default:
+      return <StandardSectionContent section={section} tabId={tabId} />;
+  }
 };
 
 export default TabPage;
