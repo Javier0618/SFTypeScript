@@ -100,10 +100,13 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
   }, [identifier, customSection, tabSections]);
 
   const [activeTab, setActiveTab] = useState<string>(resolvedTabId);
+  const [visualTabIndex, setVisualTabIndex] = useState<number>(0);
 
   useEffect(() => {
     setActiveTab(resolvedTabId);
-  }, [resolvedTabId]);
+    const initialIndex = tabs.findIndex((tab) => tab.id === resolvedTabId);
+    setVisualTabIndex(initialIndex >= 0 ? initialIndex : 0);
+  }, [resolvedTabId, tabs]);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const heroItemsCache = useRef<Record<string, any[]>>({});
@@ -168,9 +171,10 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
   };
 
   const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-    const url = getTabUrl(tabId, tabSections);
-    navigate(url, { replace: true });
+    const newIndex = tabs.findIndex((tab) => tab.id === tabId);
+    if (newIndex !== -1) {
+      setVisualTabIndex(newIndex);
+    }
   };
 
   const { data: peliculasInternalSections } = useQuery({
@@ -213,14 +217,14 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
   }, [tabs, activeTab]);
 
   const handleSwipeLeft = () => {
-    if (currentTabIndex < tabs.length - 1) {
-      handleTabChange(tabs[currentTabIndex + 1].id);
+    if (visualTabIndex < tabs.length - 1) {
+      setVisualTabIndex(visualTabIndex + 1);
     }
   };
 
   const handleSwipeRight = () => {
-    if (currentTabIndex > 0) {
-      handleTabChange(tabs[currentTabIndex - 1].id);
+    if (visualTabIndex > 0) {
+      setVisualTabIndex(visualTabIndex - 1);
     }
   };
 
@@ -377,8 +381,15 @@ const TabPage = ({ tabId: propTabId }: TabPageProps) => {
         <div
           ref={carouselRef}
           className="relative w-full"
+          onTransitionEnd={() => {
+            const newTabId = tabs[visualTabIndex].id;
+            setActiveTab(newTabId);
+            const url = getTabUrl(newTabId, tabSections);
+            navigate(url, { replace: true });
+          }}
           style={{
-            transform: `translateX(-${currentTabIndex * 100}%)`,
+            transform: `translateX(-${visualTabIndex * 100}%)`,
+            transition: "transform 0.3s ease-in-out",
             willChange: "transform",
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
