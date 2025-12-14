@@ -40,9 +40,13 @@ export const getImportedTVShows = async (): Promise<TVShow[]> => {
 }
 
 export const getRelatedMovies = async (excludeId: number, limit = 6): Promise<Movie[]> => {
-  const { data, error } = await supabase.from("movies_imported").select("*").neq("tmdb_id", excludeId).limit(limit)
+  const { data, error } = await supabase
+    .from("movies_imported")
+    .select("*")
+    .neq("tmdb_id", excludeId)
+    .limit(100)
   if (error) throw error
-  const shuffled = data?.sort(() => 0.5 - Math.random()) || []
+  const shuffled = data?.sort(() => 0.5 - Math.random()).slice(0, limit) || []
   return shuffled.map((movie) => ({
     id: movie.tmdb_id,
     title: movie.title,
@@ -57,9 +61,13 @@ export const getRelatedMovies = async (excludeId: number, limit = 6): Promise<Mo
 }
 
 export const getRelatedTVShows = async (excludeId: number, limit = 6): Promise<TVShow[]> => {
-  const { data, error } = await supabase.from("tv_shows_imported").select("*").neq("tmdb_id", excludeId).limit(limit)
+  const { data, error } = await supabase
+    .from("tv_shows_imported")
+    .select("*")
+    .neq("tmdb_id", excludeId)
+    .limit(100)
   if (error) throw error
-  const shuffled = data?.sort(() => 0.5 - Math.random()) || []
+  const shuffled = data?.sort(() => 0.5 - Math.random()).slice(0, limit) || []
   return shuffled.map((show) => ({
     id: show.tmdb_id,
     name: show.name,

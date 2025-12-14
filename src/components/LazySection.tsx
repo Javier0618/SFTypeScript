@@ -5,6 +5,7 @@ interface LazySectionProps {
   fallback?: ReactNode;
   rootMargin?: string;
   threshold?: number;
+  forceLoad?: boolean;
 }
 
 export const LazySection = ({
@@ -12,10 +13,18 @@ export const LazySection = ({
   fallback,
   rootMargin = "200px",
   threshold = 0,
+  forceLoad = false,
 }: LazySectionProps) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isVisible, setIsVisible] = useState(forceLoad);
+  const [hasLoaded, setHasLoaded] = useState(forceLoad);
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (forceLoad && !hasLoaded) {
+      setIsVisible(true);
+      setHasLoaded(true);
+    }
+  }, [forceLoad, hasLoaded]);
 
   useEffect(() => {
     const element = ref.current;
@@ -34,7 +43,7 @@ export const LazySection = ({
       {
         rootMargin,
         threshold,
-      }
+      },
     );
 
     observer.observe(element);
@@ -60,7 +69,7 @@ export const LazySection = ({
 
   return (
     <div ref={ref}>
-      {isVisible || hasLoaded ? children : (fallback || defaultFallback)}
+      {isVisible || hasLoaded ? children : fallback || defaultFallback}
     </div>
   );
 };

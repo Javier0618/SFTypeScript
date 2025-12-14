@@ -528,9 +528,9 @@ const TVShowDetail = () => {
         <div className="mt-6">
           <p className="text-foreground/90 leading-relaxed text-sm">{show.overview}</p>
 
-          <div className="text-sm mt-4 space-y-3 pt-4 border-t border-white/10">
+          <div className="text-sm mt-4 space-y-4 pt-4 border-t border-white/10">
             <div>
-              <span className="text-muted-foreground block mb-1">Director:</span>
+              <span className="text-muted-foreground block mb-1">Creadores:</span>
               <span className="font-medium">
                 {(show as any).created_by?.map((c: any) => c.name).join(", ") ||
                   show.credits.crew.find((c) => c.job === "Director")?.name ||
@@ -538,13 +538,29 @@ const TVShowDetail = () => {
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-1">Actores:</span>
-              <span className="font-medium text-foreground/90">
-                {show.credits.cast
-                  .slice(0, 5)
-                  .map((a) => a.name)
-                  .join(", ")}
-              </span>
+              <span className="text-muted-foreground block mb-2">Actores:</span>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {show.credits.cast.slice(0, 8).map((a, index) => (
+                  <div key={index} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20">
+                      {a.profile_path ? (
+                        <img
+                          src={`https://image.tmdb.org/t/p/w185${a.profile_path}`}
+                          alt={a.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-secondary flex items-center justify-center text-muted-foreground text-lg">
+                          {a.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground text-center w-16 truncate">
+                      {a.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -555,7 +571,7 @@ const TVShowDetail = () => {
             <h2 className="text-xl font-bold mb-3">También podría gustarte</h2>
             <div className="grid grid-cols-3 gap-2">
               {relatedShows.map((relatedShow) => (
-                <MovieCard key={relatedShow.id} item={relatedShow} type="tv" titleLines={1} />
+                <MovieCard key={relatedShow.id} item={relatedShow} type="tv" titleLines={1} replaceNavigation />
               ))}
             </div>
           </div>
@@ -634,20 +650,7 @@ const TVShowDetail = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <h4 className="text-sm font-semibold text-white mb-2 uppercase tracking-wide opacity-70">
-                      Elenco Principal
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {show.credits.cast.slice(0, 5).map((a, index) => (
-                        <span key={index} className="text-muted-foreground hover:text-white transition-colors">
-                          {a.name}
-                          {index < 4 ? "," : ""}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                <div className="space-y-6">
                   <div>
                     <h4 className="text-sm font-semibold text-white mb-2 uppercase tracking-wide opacity-70">
                       Creadores
@@ -657,6 +660,33 @@ const TVShowDetail = () => {
                         show.credits.crew.find((c) => c.job === "Director")?.name ||
                         "N/A"}
                     </p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white mb-3 uppercase tracking-wide opacity-70">
+                      Elenco Principal
+                    </h4>
+                    <div className="flex flex-wrap gap-3 sm:gap-4">
+                      {show.credits.cast.slice(0, 5).map((a, index) => (
+                        <div key={index} className="flex flex-col items-center gap-2 group">
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-white/50 transition-colors">
+                            {a.profile_path ? (
+                              <img
+                                src={`https://image.tmdb.org/t/p/w185${a.profile_path}`}
+                                alt={a.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-secondary flex items-center justify-center text-muted-foreground text-lg sm:text-xl">
+                                {a.name.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground group-hover:text-white transition-colors text-center max-w-[70px] sm:max-w-[80px] truncate">
+                            {a.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -680,7 +710,7 @@ const TVShowDetail = () => {
             <h2 className="text-2xl font-bold mb-6">También podría gustarte</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
               {relatedShows.map((relatedShow) => (
-                <MovieCard key={relatedShow.id} item={relatedShow} type="tv" />
+                <MovieCard key={relatedShow.id} item={relatedShow} type="tv" replaceNavigation />
               ))}
             </div>
           </div>

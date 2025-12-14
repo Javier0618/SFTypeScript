@@ -2,25 +2,30 @@
 
 import { type Movie, type TVShow, getImageUrl } from "@/lib/tmdb"
 import { Card } from "@/components/ui/card"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import RatingCircle from "@/components/ui/RatingCircle"
-import { OptimizedImage } from "@/components/OptimizedImage"
+import { CachedImage } from "@/components/CachedImage"
 
 interface MovieCardProps {
   item: Movie | TVShow
   type: "movie" | "tv"
   titleLines?: 1 | 2 | "full"
   onClick?: () => void
-  priority?: boolean // Add priority prop for above-the-fold images
+  replaceNavigation?: boolean
 }
 
-export const MovieCard = ({ item, type, titleLines = 1, onClick, priority = false }: MovieCardProps) => {
+export const MovieCard = ({ item, type, titleLines = 1, onClick, replaceNavigation = false }: MovieCardProps) => {
   const title = "title" in item ? item.title : item.name
   const date = "release_date" in item ? item.release_date : item.first_air_date
+  const navigate = useNavigate()
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     if (onClick) {
       onClick()
+    }
+    if (replaceNavigation) {
+      e.preventDefault()
+      navigate(`/${type}/${item.id}`, { replace: true })
     }
   }
 
@@ -29,12 +34,11 @@ export const MovieCard = ({ item, type, titleLines = 1, onClick, priority = fals
       <Card className="relative overflow-hidden rounded-lg border-0 bg-card shadow-card transition-all duration-300 cursor-pointer">
         <div className="aspect-[2/3] relative">
           {item.poster_path ? (
-            <OptimizedImage
-              src={getImageUrl(item.poster_path, "w500")}
+            <CachedImage
+              src={getImageUrl(item.poster_path)}
               alt={title}
               className="w-full h-full object-cover"
-              aspectRatio="poster"
-              priority={priority}
+              loading="lazy"
               fallback={
                 <div className="w-full h-full bg-secondary flex items-center justify-center">
                   <span className="text-muted-foreground">Sin imagen</span>
@@ -48,16 +52,16 @@ export const MovieCard = ({ item, type, titleLines = 1, onClick, priority = fals
           )}
 
           {/* Overlays */}
-          <div className="absolute top-2 left-2 z-10">
+          <div className="absolute top-2 left-2">
             <RatingCircle rating={item.vote_average} />
           </div>
-          <div className="absolute bottom-2 left-1 bg-black/70 px-1 py-0.2 md:px-2 md:py-1 rounded-sm z-10">
+          <div className="absolute bottom-2 left-1 bg-black/70 px-1 py-0.2 md:px-2 md:py-1 rounded-sm">
             <span className="text-white text-[10px] md:text-xs font-semibold">
               {type === "movie" ? "Película" : "Serie"}
             </span>
           </div>
           {date && (
-            <div className="absolute bottom-2 right-1 bg-black/70 px-1 py-0.2 md:px-2 md:py-1 rounded-sm z-10">
+            <div className="absolute bottom-2 right-1 bg-black/70 px-1 py-0.2 md:px-2 md:py-1 rounded-sm">
               <span className="text-white text-[10px] md:text-xs font-semibold">{new Date(date).getFullYear()}</span>
             </div>
           )}

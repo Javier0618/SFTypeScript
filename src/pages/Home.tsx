@@ -231,13 +231,13 @@ const Home = () => {
       return (
         <>
           <Hero items={heroItems} isActive={isActive} />
-          <LazySection>
+          <LazySection forceLoad={isActive}>
             <div className="mt-8">
               <StreamingPlatforms />
             </div>
           </LazySection>
           <div className="container mx-auto px-2 py-1">
-            <LazySection>
+            <LazySection forceLoad={isActive}>
               <MediaCarousel
                 title="Películas Populares"
                 items={allMovies?.slice(0, 20) || []}
@@ -245,7 +245,7 @@ const Home = () => {
                 viewAllLink="/view-all/movies"
               />
             </LazySection>
-            <LazySection>
+            <LazySection forceLoad={isActive}>
               <MediaCarousel
                 title="Series Populares"
                 items={allSeries?.slice(0, 20) || []}
@@ -262,10 +262,7 @@ const Home = () => {
               )
               .map((section) => (
                 <LazySection key={section.id}>
-                  <DynamicSection
-                    section={section}
-                    tabId="inicio"
-                  />
+                  <DynamicSection section={section} tabId="inicio" />
                 </LazySection>
               ))}
           </div>
@@ -277,13 +274,13 @@ const Home = () => {
       return (
         <>
           <Hero items={heroItems} isActive={isActive} />
-          <LazySection>
+          <LazySection forceLoad={isActive}>
             <div className="mt-8">
               <StreamingPlatforms />
             </div>
           </LazySection>
           <div className="container mx-auto px-2 py-1">
-            <LazySection>
+            <LazySection forceLoad={isActive}>
               <MediaCarousel
                 title="Todas las Películas"
                 items={allMovies || []}
@@ -300,10 +297,7 @@ const Home = () => {
               )
               .map((section) => (
                 <LazySection key={section.id}>
-                  <DynamicSection
-                    section={section}
-                    tabId="peliculas"
-                  />
+                  <DynamicSection section={section} tabId="peliculas" />
                 </LazySection>
               ))}
           </div>
@@ -315,13 +309,13 @@ const Home = () => {
       return (
         <>
           <Hero items={heroItems} isActive={isActive} />
-          <LazySection>
+          <LazySection forceLoad={isActive}>
             <div className="mt-8">
               <StreamingPlatforms />
             </div>
           </LazySection>
           <div className="container mx-auto px-2 py-1">
-            <LazySection>
+            <LazySection forceLoad={isActive}>
               <MediaCarousel
                 title="Todas las Series"
                 items={allSeries || []}
@@ -338,10 +332,7 @@ const Home = () => {
               )
               .map((section) => (
                 <LazySection key={section.id}>
-                  <DynamicSection
-                    section={section}
-                    tabId="series"
-                  />
+                  <DynamicSection section={section} tabId="series" />
                 </LazySection>
               ))}
           </div>
@@ -352,16 +343,16 @@ const Home = () => {
     return (
       <>
         <Hero items={heroItems} isActive={isActive} />
-        <LazySection>
+        <LazySection forceLoad={isActive}>
           <div className="mt-8">
             <StreamingPlatforms />
           </div>
         </LazySection>
         <div className="container mx-auto px-2 py-1">
-          <LazySection>
+          <LazySection forceLoad={isActive}>
             <CustomTabContent sectionId={tabId} />
           </LazySection>
-          <LazySection>
+          <LazySection forceLoad={isActive}>
             <DynamicSectionsForTab tabId={tabId} screenType={screenType} />
           </LazySection>
         </div>
